@@ -24,11 +24,13 @@ export async function learningBlock(client: Client, workspaceId: string, employe
     .order("confidence", { ascending: false })
     .limit(6);
   const experimentPercent = settings?.experiment_percent ?? 10;
-  // الدروس المعتمدة تدخل عيّنة التجربة الصامتة أياً كانت درجة مخاطرتها، وإلا فالدروس
-  // عالية المخاطرة لا تصل أي رد أبداً فلا تُقاس ولا تُرقّى (حلقة مغلقة على نفسها).
-  // عالية المخاطرة تدخل بنصف النسبة، وترقيتها التلقائية تبقى ممنوعة (قرار المالك وحده).
+  // الدرس عالي المخاطرة (سعر، خصم، نشر تلقائي، وعد، دفع، صلاحية) لا يدخل أي رد حقيقي
+  // قبل أن يعتمده المالك بنفسه ويصير status = active. الاعتماد الآلي وحده لا يكفي:
+  // التجربة الصامتة كانت تعرضه على عملاء حقيقيين قبل مراجعة بشرية.
+  // المتوسط والمنخفض يدخلان التجربة الصامتة بالنسبة المحددة.
   const selected = (data ?? []).filter((lesson) => {
     if (lesson.status === "active") return true;
+    if (lesson.risk_level === "high") return false;
     const share = lesson.risk_level === "low" ? experimentPercent : experimentPercent / 2;
     return Math.random() * 100 < share;
   });

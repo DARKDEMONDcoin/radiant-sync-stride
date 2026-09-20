@@ -50,7 +50,9 @@ export async function verifyTokenMatches(admin: Admin, token: string): Promise<b
   if (!token) return false;
   const { getSecrets } = await import("./secrets.server");
   const secrets = await getSecrets(["WHATSAPP_VERIFY_TOKEN"] as const);
-  if (secrets.WHATSAPP_VERIFY_TOKEN?.trim() === token) return true;
+  // مقارنة ثابتة الزمن مثل بقية أسرار المشروع — المقارنة العادية تسرّب طول التطابق.
+  const { secretsMatch } = await import("./timing-safe");
+  if (secretsMatch(token, secrets.WHATSAPP_VERIFY_TOKEN?.trim())) return true;
   const { data } = await admin
     .from("integration_credentials")
     .select("config")
@@ -58,7 +60,7 @@ export async function verifyTokenMatches(admin: Admin, token: string): Promise<b
   const { openConfig } = await import("./credential-crypto.server");
   for (const row of data ?? []) {
     const config = await openConfig<StoredConfig>(row.config);
-    if (config?.verifyToken === token) return true;
+    if (secretsMatch(token, config?.verifyToken)) return true;
   }
   return false;
 }
