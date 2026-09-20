@@ -66,7 +66,12 @@ export const whatsappStatus = createServerFn({ method: "POST" })
         .eq("channel", "whatsapp")
         .order("created_at", { ascending: true }),
     ]);
-    const config = (cred?.config ?? {}) as {
+    const { openConfig } = await import("./credential-crypto.server");
+    const config = ((await openConfig<{
+      phoneNumberId?: string;
+      displayNumber?: string;
+      phones?: { id: string; displayNumber: string; name?: string }[];
+    }>(cred?.config)) ?? {}) as {
       phoneNumberId?: string;
       displayNumber?: string;
       phones?: { id: string; displayNumber: string; name?: string }[];
@@ -179,7 +184,8 @@ export const selectWhatsappPhone = createServerFn({ method: "POST" })
       .eq("workspace_id", data.workspaceId)
       .eq("provider", "whatsapp")
       .maybeSingle();
-    const config = (cred?.config ?? {}) as {
+    const { openConfig, sealConfig } = await import("./credential-crypto.server");
+    const config = ((await openConfig<Record<string, unknown>>(cred?.config)) ?? {}) as {
       phones?: { id: string; displayNumber: string; wabaId?: string }[];
     };
     const phone = (config.phones ?? []).find((p) => p.id === data.phoneNumberId);
@@ -188,12 +194,12 @@ export const selectWhatsappPhone = createServerFn({ method: "POST" })
     const { error } = await admin
       .from("integration_credentials")
       .update({
-        config: {
+        config: await sealConfig({
           ...config,
           phoneNumberId: phone.id,
           displayNumber: phone.displayNumber,
           ...(phone.wabaId ? { wabaId: phone.wabaId } : {}),
-        },
+        }),
       })
       .eq("workspace_id", data.workspaceId)
       .eq("provider", "whatsapp");
