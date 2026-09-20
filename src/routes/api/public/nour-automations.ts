@@ -50,6 +50,7 @@ export const Route = createFileRoute("/api/public/nour-automations")({
             });
 
             let published: string | null = null;
+            let publishError: string | null = null;
             if (row.auto_publish) {
               const { toArticle } = await import("@/lib/markdown");
               const { autoPublish } = await import("@/lib/publish-core.server");
@@ -68,7 +69,11 @@ export const Route = createFileRoute("/api/public/nour-automations")({
               .from("automations")
               .update({
                 last_run_at: now.toISOString(),
-                last_status: published ? `نجح · مسودة على ${published}` : "نجح",
+                last_status: publishError
+                  ? `المخرج جاهز · تعذّر حفظ المسودة: ${publishError.slice(0, 160)}`
+                  : published
+                    ? `نجح · مسودة على ${published}`
+                    : "نجح",
                 next_run_at: nextRun(
                   row.cadence as "daily" | "weekly" | "monthly",
                   row.day_of_week,
