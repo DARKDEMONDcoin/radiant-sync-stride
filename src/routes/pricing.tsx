@@ -52,7 +52,7 @@ const perkIcons = [Sparkles, Users, Zap, Image, Workflow, Inbox, Link2, BarChart
 const matrix: { f: string; v: (boolean | string)[] }[] = [
   { f: "عدد الموظفين الرقميين", v: ["1", "6", "6+"] },
   { f: "المهام الشهرية", v: ["60", "1000", "غير محدودة"] },
-  { f: "النشر التلقائي على 7 منصات", v: [true, true, true] },
+  { f: "النشر التلقائي على 8 منصات", v: [true, true, true] },
   { f: "مسارات عمل بين الموظفين", v: [false, true, true] },
   { f: "صندوق العملاء الموحّد", v: [false, true, true] },
   { f: "سجل تدقيق وتصدير كامل", v: [true, true, true] },
@@ -318,7 +318,7 @@ function PricingPage() {
             </div>
           </Reveal>
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            كل الباقات تشمل: تشفير البيانات، تصدير كامل في أي وقت، وإلغاء بضغطة دون مكالمة احتفاظ.
+            كل الباقات تشمل: تشفير البيانات، تصدير كامل في أي وقت، وإلغاء بضغطة دون مكالمة احتفاظ. الأسعار لا تشمل ضريبة القيمة المضافة؛ تُضاف عند الفوترة حسب بلدك.
           </p>
         </section>
 

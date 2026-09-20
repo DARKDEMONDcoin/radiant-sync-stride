@@ -42175,8 +42175,13 @@ section:has(> .integration-grid-wave) {
 }
 .sahl-versus-row {
   border-top: 1px solid color-mix(in oklab, var(--home-bg) 11%, transparent);
+  /* الخلايا تمتد لكامل ارتفاع الصف: بدونها كان عمود «سهل» الملوّن يقصر عند الصفوف
+     الطويلة فيظهر فراغ أفقي يكسر الجدول على شاشة الكمبيوتر. */
+  align-items: stretch;
 }
 .sahl-versus-row span {
+  display: flex;
+  align-items: center;
   padding: 16px 18px;
   font-size: 0.86rem;
   line-height: 1.7;
@@ -42189,8 +42194,7 @@ section:has(> .integration-grid-wave) {
   color: color-mix(in oklab, var(--home-bg) 46%, transparent);
 }
 .sahl-versus-row .is-sahl {
-  display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 9px;
   background: color-mix(in oklab, var(--home-terracotta) 16%, transparent);
   color: var(--home-bg);
@@ -42198,7 +42202,7 @@ section:has(> .integration-grid-wave) {
 }
 .sahl-versus-row .is-sahl svg {
   width: 16px;
-  margin-top: 4px;
+  margin-top: 0;
   color: color-mix(in oklab, var(--home-gold) 72%, var(--home-bg));
   flex: none;
   animation: sahl-check-pop 7s ease-in-out infinite;
