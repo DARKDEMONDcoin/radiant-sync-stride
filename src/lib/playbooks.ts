@@ -19,21 +19,19 @@ const CORE: Record<string, string> = {
   adam: analyticsPlaybookBlock,
 };
 
+const ADS_EMPLOYEES = new Set(["sonny", "adam", "dana", "sam"]);
+
 /**
- * كتلة الدليل لموظف. `message` اختياري: تُضاف كتلة الإعلانات لآدم/دانة/سالم
- * فقط عندما يكون الطلب إعلانياً فعلاً (لتوفير التوكنات وزمن الرد).
+ * كتلة الدليل لموظف. `message` اختياري: كتلة الإعلانات تُضاف لسِراج/آدم/دانة/سالم
+ * فقط عندما يكون الطلب إعلانياً فعلاً (توفيراً للتوكنات وزمن الرد).
+ * بلا رسالة لا تُحقن لأحد — لا استثناء ضمني لأي موظف.
  */
 export function playbookFor(employeeId: string, message?: string): string {
   const blocks: string[] = [];
   const core = CORE[employeeId];
   if (core) blocks.push(core);
-  const adsRelevant =
-    (employeeId === "sonny" ||
-      employeeId === "adam" ||
-      employeeId === "dana" ||
-      employeeId === "sam") &&
-    // بلا رسالة: لا نحقن دليل الإعلانات لأحد؛ يُحقن فقط عندما يكون الطلب إعلانياً فعلاً.
-    (message ? isAdsRequest(message) : employeeId === "sonny");
-  if (adsRelevant) blocks.push(adsPlaybookBlock());
+  if (ADS_EMPLOYEES.has(employeeId) && message && isAdsRequest(message)) {
+    blocks.push(adsPlaybookBlock());
+  }
   return blocks.filter(Boolean).join("\n\n");
 }

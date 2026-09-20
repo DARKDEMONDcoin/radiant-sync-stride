@@ -80,8 +80,9 @@ const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0
 export async function judgeAndImprove(input: JudgeInput): Promise<JudgeVerdict> {
   const original = input.output ?? "";
   const fallback: JudgeVerdict = { score: 0, issues: [], output: original, revised: false };
-  // المخرجات القصيرة (كابشن، تغريدة، رسالة باردة) تُراجَع أيضاً — هي الأكثر استخداماً.
-  if (original.trim().length < 60) return fallback;
+  // المخرجات القصيرة (كابشن، تغريدة، رسالة باردة) تُراجَع أيضاً — هي الأكثر استخداماً،
+  // وفحص الفراغات والكلمات الممنوعة مصمَّم أصلاً لها. لا يُستثنى إلا ما لا يحتمل مراجعة أصلاً.
+  if (original.trim().length < 12) return fallback;
 
 
   const threshold = input.threshold ?? 82;
