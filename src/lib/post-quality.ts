@@ -8,6 +8,7 @@
  */
 
 import { PROVIDER_LABEL } from "./platforms";
+import { normalizeArabic } from "./output-quality";
 
 export type QualitySeverity = "pass" | "warn" | "fail";
 
@@ -108,6 +109,11 @@ const DEFAULT_SPEC: Spec = {
   needsMedia: false,
   maxLineLen: 200,
 };
+
+/** الحد الأقصى الرسمي لنص المنصة — مرجع واحد يستخدمه التنسيق والنشر أيضاً. */
+export function platformHardLimit(provider: string): number {
+  return (SPEC[provider] ?? DEFAULT_SPEC).hardLimit;
+}
 
 /** دعوات الفعل الشائعة بالعربية والإنجليزية. */
 const CTA =
@@ -284,9 +290,12 @@ export function scorePost({
   );
 
   // ٢) الكلمات الممنوعة — حاجز نشر.
+  // تطبيع عربي قبل المقارنة: «الإعلان» و«الاعلان» و«الاعلـان» كلمة واحدة —
+  // نفس سلوك بوابة الجودة العامة (output-quality) حتى لا يختلف الحكم بحسب المسار.
+  const normalizedClean = normalizeArabic(clean);
   const hitBanned = bannedWords
     .map((w) => w.trim())
-    .filter((w) => w.length > 1 && clean.includes(w));
+    .filter((w) => w.length > 1 && normalizedClean.includes(normalizeArabic(w)));
   add(
     "banned",
     "الالتزام بكلمات العلامة الممنوعة",
@@ -381,7 +390,9 @@ export function scorePost({
     "saveable",
     "قابل للحفظ أو المشاركة",
     7,
-    saveable ? "pass" : words < 18 ? "warn" : "pass",
+    // كان الطويل يمرّ دائماً والقصير وحده يُنبَّه — منطق مقلوب: غياب سبب الحفظ
+    // ملاحظة في كل الأحوال، وأثرها أوضح في المنشور الطويل.
+    saveable ? "pass" : "warn",
     saveable
       ? "فيه سبب واضح للحفظ أو المشاركة."
       : "حوّله إلى نقطة مفيدة قابلة للحفظ: قائمة، خطأ شائع، خطوة، أو مقارنة قصيرة.",
