@@ -159,17 +159,31 @@ function claimInFlight(workspaceId: string, provider: string, text: string): () 
   return () => inFlight.delete(key);
 }
 
+type PublishParams = {
+  workspaceId: string;
+  provider: string;
+  text: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  /** وسائط متعددة: ألبوم فيسبوك أو كاروسيل إنستجرام. */
+  media?: { url: string; kind: "image" | "video" }[];
+};
+
 export async function publishToPlatform(
   admin: Admin,
-  params: {
-    workspaceId: string;
-    provider: string;
-    text: string;
-    imageUrl?: string;
-    videoUrl?: string;
-    /** وسائط متعددة: ألبوم فيسبوك أو كاروسيل إنستجرام. */
-    media?: { url: string; kind: "image" | "video" }[];
-  },
+  params: PublishParams,
+): Promise<PublishResult> {
+  const release = claimInFlight(params.workspaceId, params.provider, params.text);
+  try {
+    return await publishToPlatformInner(admin, params);
+  } finally {
+    release();
+  }
+}
+
+async function publishToPlatformInner(
+  admin: Admin,
+  params: PublishParams,
 ): Promise<PublishResult> {
   const app = pipedreamApp(params.provider);
   const metaProxy = params.provider === "instagram" || params.provider === "facebook";
