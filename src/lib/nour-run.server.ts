@@ -964,10 +964,14 @@ export async function executeSkill(
   });
 
   const long = LONG_SKILLS.has(skill.id);
+  // عمق التفكير يتحدد بثقل المهمة نفسها — كما في المحادثة — بدل «منخفض» الافتراضي
+  // الذي كان يسري على كل المهام المجدولة مهما كانت استراتيجية.
+  const effort = effortFor("work", `${skill.title} ${requestSummary}`, long);
   const chat = (messages: { role: string; content: string }[]) =>
     freeChat(apiKey, messages as Parameters<typeof freeChat>[1], {
       timeoutMs: long ? 150_000 : 55_000,
       maxTokens: long ? 8000 : 3600,
+      reasoningEffort: effort,
       timeZone,
     });
 
