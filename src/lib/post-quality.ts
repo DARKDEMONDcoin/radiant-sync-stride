@@ -69,7 +69,8 @@ const SPEC: Record<string, Spec> = {
     hardLimit: 3000,
     // مطابق لحدود المنصات المكتوبة في platform-limits.ts (600–1200 حرفاً).
     sweet: [600, 1200],
-    hashtags: [3, 5],
+    // مطابق لنص platform-limits.ts: «3 هاشتاقات كحد أقصى» — لا حد أدنى.
+    hashtags: [0, 3],
     maxEmojis: 3,
     needsMedia: false,
     maxLineLen: 220,

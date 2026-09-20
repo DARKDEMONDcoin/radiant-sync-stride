@@ -101,7 +101,9 @@ async function call<T>(config: PipedreamConfig, path: string, init: RequestInit 
   const text = await res.text();
   if (!res.ok) {
     console.error(`[pipedream] ${path} [${res.status}]: ${text.slice(0, 400)}`);
-    if (res.status === 429) throw new Error("Pipedream مشغول مؤقتاً — أعد المحاولة بعد قليل.");
+    // نُبقي رقم الحالة داخل الرسالة كي يصنّفها مصنّف الأعطال المؤقتة في proxyRequest
+    // ضمن القابل لإعادة المحاولة — بدونه كان أشهر عطل مؤقت (الازدحام) لا يُعاد أبداً.
+    if (res.status === 429) throw new Error("Pipedream مشغول مؤقتاً [429] — أعد المحاولة بعد قليل.");
     // حساب مفقود لدى الوسيط = ربط قديم أو ملغى — نوضّحه بلغة المستخدم.
     if (text.includes("Auth provision not found")) {
       throw new Error("الحساب لم يعد مربوطاً — أعد ربطه من صفحة التكاملات ثم أعد المحاولة.");

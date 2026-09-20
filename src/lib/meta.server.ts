@@ -103,7 +103,8 @@ export async function verifyState(
 ): Promise<{ workspaceId: string; returnTo: string; kind: "meta" | "whatsapp" } | null> {
   const [payload, sig] = state.split(".");
   if (!payload || !sig) return null;
-  if ((await hmac(config.appSecret, payload)) !== sig) return null;
+  const { secretsMatch } = await import("./timing-safe");
+  if (!secretsMatch(sig, await hmac(config.appSecret, payload))) return null;
   try {
     const json = JSON.parse(
       new TextDecoder().decode(
