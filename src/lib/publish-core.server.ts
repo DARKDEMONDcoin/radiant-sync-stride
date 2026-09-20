@@ -96,6 +96,7 @@ export async function autoPublish(
       const res = await fetch(
         `https://${sh.shop}/admin/api/2024-10/blogs/${sh.blogId}/articles.json`,
         {
+          signal: AbortSignal.timeout(30_000),
           method: "POST",
           headers: {
             "X-Shopify-Access-Token": sh.accessToken,
