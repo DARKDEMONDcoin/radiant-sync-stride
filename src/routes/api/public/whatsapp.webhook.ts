@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { secretsMatch } from "@/lib/timing-safe";
 
 /**
  * ويبهوك واتساب للأعمال: يستقبل رسائل صاحب البيزنس ويرد بمسودة المنشور،
@@ -50,11 +51,9 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook")({
           const expected = Array.from(new Uint8Array(mac))
             .map((b) => b.toString(16).padStart(2, "0"))
             .join("");
-          const ok =
-            provided.length === expected.length &&
-            provided
-              .split("")
-              .every((ch, i) => ch.toLowerCase() === (expected[i] as string).toLowerCase());
+          // مقارنة ثابتة الزمن من المصدر الموحّد؛ حلقة every كانت تتوقف عند أول
+          // اختلاف فيتسرّب طول التطابق.
+          const ok = secretsMatch(provided.toLowerCase(), expected.toLowerCase());
           if (!ok) return new Response("forbidden", { status: 403 });
         }
 

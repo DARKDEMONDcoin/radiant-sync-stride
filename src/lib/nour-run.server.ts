@@ -1061,7 +1061,9 @@ export async function executeSkill(
       criteria: qualityCriteria[params.employeeId] ?? [],
       bannedWords: workspace.banned_words ?? [],
     });
-    qualityScore = verdict.score || null;
+    // Number.isFinite لا ||: الدرجة صفر حكمٌ حقيقي برسوب، وتحويلها إلى null
+    // كان يُخفي أسوأ المخرجات من متوسط الجودة ومن دورة التعلّم.
+    qualityScore = verdict.checked && Number.isFinite(verdict.score) ? verdict.score : null;
     qualityRevised = verdict.revised;
     qualityIssues = verdict.issues;
     output = verdict.output;
@@ -1157,7 +1159,7 @@ export async function executeSkill(
         { label: "فهم الطلب", state: "done" },
         { label: "التنفيذ", state: "done" },
         {
-          label: qualityScore
+          label: qualityScore !== null
             ? `مراجعة الجودة — ${qualityScore}/100${qualityRevised ? " (أُعيدت الكتابة)" : ""}`
             : qualityChecked
               ? "مراجعة الجودة"

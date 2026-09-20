@@ -86,18 +86,23 @@ export async function saveWhatsappFromMeta(
   const { openConfig, sealConfig } = await import("./credential-crypto.server");
   const previous = ((await openConfig<StoredConfig>(existing?.config)) ?? {}) as StoredConfig;
 
+  // الرقم المعروض والحساب يجب أن يطابقا الرقم الذي سيُرسل منه فعلاً، لا أول رقم
+  // في القائمة: مع أكثر من رقم كان المالك يرى رقماً غير الذي يرسل الموظف منه.
+  const keptId =
+    previous.phoneNumberId && params.phones.some((p) => p.id === previous.phoneNumberId)
+      ? previous.phoneNumberId
+      : chosen.id;
+  const active = params.phones.find((p) => p.id === keptId) ?? chosen;
+
   const { error } = await admin.from("integration_credentials").upsert(
     {
       workspace_id: workspaceId,
       provider: "whatsapp",
       config: await sealConfig({
-        phoneNumberId:
-          previous.phoneNumberId && params.phones.some((p) => p.id === previous.phoneNumberId)
-            ? previous.phoneNumberId
-            : chosen.id,
+        phoneNumberId: keptId,
         token: params.token,
-        wabaId: chosen.wabaId,
-        displayNumber: chosen.displayNumber,
+        wabaId: active.wabaId,
+        displayNumber: active.displayNumber,
         phones: params.phones,
         verifyToken: previous.verifyToken ?? crypto.randomUUID().replace(/-/g, ""),
       }),
@@ -108,11 +113,11 @@ export async function saveWhatsappFromMeta(
 
   await admin
     .from("integrations")
-    .update({ status: "connected", account: chosen.displayNumber || chosen.name || "واتساب" })
+    .update({ status: "connected", account: active.displayNumber || active.name || "واتساب" })
     .eq("workspace_id", workspaceId)
     .eq("provider", "whatsapp");
 
-  return { displayNumber: chosen.displayNumber, count: params.phones.length };
+  return { displayNumber: active.displayNumber, count: params.phones.length };
 }
 
 /** يقرأ بيانات واتساب لمساحة عمل بعينها. */

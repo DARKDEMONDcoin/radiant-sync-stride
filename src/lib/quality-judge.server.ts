@@ -15,6 +15,8 @@ export type JudgeVerdict = {
   /** المخرج النهائي — الأصلي أو المُحسَّن. */
   output: string;
   revised: boolean;
+  /** هل جرى تقييم فعلي؟ false يعني تخطّياً لا رسوباً بدرجة صفر. */
+  checked: boolean;
 };
 
 export type JudgeInput = {
@@ -79,7 +81,13 @@ const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0
  */
 export async function judgeAndImprove(input: JudgeInput): Promise<JudgeVerdict> {
   const original = input.output ?? "";
-  const fallback: JudgeVerdict = { score: 0, issues: [], output: original, revised: false };
+  const fallback: JudgeVerdict = {
+    score: 0,
+    issues: [],
+    output: original,
+    revised: false,
+    checked: false,
+  };
   // المخرجات القصيرة (كابشن، تغريدة، رسالة باردة) تُراجَع أيضاً — هي الأكثر استخداماً،
   // وفحص الفراغات والكلمات الممنوعة مصمَّم أصلاً لها. لا يُستثنى إلا ما لا يحتمل مراجعة أصلاً.
   if (original.trim().length < 12) return fallback;
@@ -152,7 +160,7 @@ export async function judgeAndImprove(input: JudgeInput): Promise<JudgeVerdict> 
       ],
     };
   } else if (score >= threshold && !mustFix.length) {
-    return { score, issues: verdict.issues, output: original, revised: false };
+    return { score, issues: verdict.issues, output: original, revised: false, checked: true };
   } else {
     verdict = { score, issues };
   }
@@ -162,7 +170,7 @@ export async function judgeAndImprove(input: JudgeInput): Promise<JudgeVerdict> 
   // أكبر أثراً عند الرسوب. حاجز الطول أدناه (٧٠٪ من الأصل) يمنع فقدان المحتوى،
   // وما يتجاوز هذا الحجم فعلاً تصعب إعادة كتابته في نداء واحد بلا بتر.
   if (original.length > 22_000) {
-    return { score: verdict.score, issues: verdict.issues, output: original, revised: false };
+    return { score: verdict.score, issues: verdict.issues, output: original, revised: false, checked: true };
   }
 
 
@@ -192,7 +200,7 @@ export async function judgeAndImprove(input: JudgeInput): Promise<JudgeVerdict> 
     const longForm = original.length > 1500;
     const floor = longForm ? original.length * 0.7 : 80;
     if (fixed.length < floor) {
-      return { score: verdict.score, issues: verdict.issues, output: original, revised: false };
+      return { score: verdict.score, issues: verdict.issues, output: original, revised: false, checked: true };
     }
 
     // لا نعتمد نسخة أسوأ من الأصل: نعيد فحصها حتمياً ونقارن.
@@ -203,7 +211,7 @@ export async function judgeAndImprove(input: JudgeInput): Promise<JudgeVerdict> 
       bannedWords: input.bannedWords ?? [],
     });
     if (after.penalty > audit.penalty) {
-      return { score: verdict.score, issues: verdict.issues, output: original, revised: false };
+      return { score: verdict.score, issues: verdict.issues, output: original, revised: false, checked: true };
     }
 
     // النسخة المُصلَحة عالجت ملاحظات محددة بلا حذف — نعتمدها بدل استهلاك نداء
@@ -214,9 +222,10 @@ export async function judgeAndImprove(input: JudgeInput): Promise<JudgeVerdict> 
       issues: after.issues.map((i) => i.hint),
       output: fixed,
       revised: true,
+      checked: true,
     };
 
   } catch {
-    return { score: verdict.score, issues: verdict.issues, output: original, revised: false };
+    return { score: verdict.score, issues: verdict.issues, output: original, revised: false, checked: true };
   }
 }
