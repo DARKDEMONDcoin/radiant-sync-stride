@@ -45,10 +45,12 @@ const ACCESSIBILITY = [
 
 /** كتلة الالتزام والأزمات وإمكانية الوصول لموظف معيّن. */
 export function complianceBlock(employeeId: string): string {
-  // أمَل تكتب بريداً ومحاضر لا محتوى بصرياً منشوراً — قواعد النص البديل والتباين لا تخصّها.
-  const producesPublic = ["sonny", "nour", "sam", "dana"].includes(employeeId);
+  // قواعد النص البديل والتباين تخصّ من يُنتج محتوى بصرياً منشوراً فقط.
+  // أمَل تكتب بريداً ومحاضر، وسالم يكتب رسائل بيع وعروضاً نصية — لا تخصّهما.
+  const producesPublic = ["sonny", "nour", "dana"].includes(employeeId);
   const parts = [LEGAL];
-  if (["sonny", "sam", "eva", "nour"].includes(employeeId)) parts.push(CRISIS);
+  // دانة تُنتج كرييتف عام قد يُطلب منها وقت أزمة، فتحتاج نفس قواعد الأزمات.
+  if (["sonny", "sam", "eva", "nour", "dana"].includes(employeeId)) parts.push(CRISIS);
   if (producesPublic) parts.push(ACCESSIBILITY);
   return parts.join("\n\n");
 }

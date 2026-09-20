@@ -238,11 +238,17 @@ export const publishToWordPress = createServerFn({ method: "POST" })
     })) as { id?: number; link?: string; status?: string };
 
     // إشعار فوري ومجاني لمحركات البحث (IndexNow) عند النشر الفعلي
-    let indexnow: { submitted: number } | null = null;
+    let indexnow: { submitted: number; accepted: boolean } | null = null;
     if (data.status === "publish" && post.link) {
       const { submitIndexNowFor } = await import("./indexnow.functions");
       const result = await submitIndexNowFor(admin, data.workspaceId, [post.link]);
-      indexnow = result ? { submitted: result.submitted } : null;
+      // «تم الإرسال» وحدها كانت تُعرض حتى لو رفض بينج وياندكس الطلب.
+      indexnow = result
+        ? {
+            submitted: result.submitted,
+            accepted: result.endpoints.some((e) => e.status >= 200 && e.status < 300),
+          }
+        : null;
     }
 
     await admin.from("tasks").insert({

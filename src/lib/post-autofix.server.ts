@@ -55,11 +55,35 @@ export async function autofixPosts(
         bannedWords: banned,
       }),
     }))
-    .filter((row) => row.report.blockers.length > 0 || row.report.score < THRESHOLD)
-    .slice(0, 4);
+    .filter((row) => row.report.blockers.length > 0 || row.report.score < THRESHOLD);
 
   if (!weak.length) return posts;
 
+  // كان الإصلاح يقتصر على أول أربعة منشورات ضعيفة، فيخرج الخامس فما بعده راسباً
+  // بلا علم أحد. الآن نعالجهم جميعاً على دفعات من أربعة (حدّ نداء واحد آمن).
+  const batches: (typeof weak)[] = [];
+  for (let i = 0; i < weak.length; i += 4) batches.push(weak.slice(i, i + 4));
+
+  let out = posts.slice();
+  for (const batch of batches) out = await fixBatch(apiKey, out, batch, opts, banned, mediaOf);
+  return out;
+}
+
+type WeakRow = {
+  post: Post;
+  index: number;
+  provider: string;
+  report: ReturnType<typeof scorePost>;
+};
+
+async function fixBatch(
+  apiKey: string,
+  posts: Post[],
+  weak: WeakRow[],
+  opts: { bannedWords?: string[]; dialect?: string; hasMedia?: boolean },
+  banned: string[],
+  mediaOf: (post: Post) => boolean,
+): Promise<Post[]> {
   const brief = weak
     .map((row, i) =>
       [
@@ -105,6 +129,7 @@ export async function autofixPosts(
       posts?: { i?: number; body?: string }[];
     };
     const out = posts.slice();
+    const repaired = new Set<number>();
     for (const fix of parsed.posts ?? []) {
       const row = weak[(Number(fix.i) || 0) - 1];
       const body = typeof fix.body === "string" ? fix.body.trim() : "";
@@ -118,11 +143,30 @@ export async function autofixPosts(
       // لا نستبدل إلا بتحسّن حقيقي — حتى لا يفسد الإصلاح نصاً كان أفضل.
       if (after.score > row.report.score && after.blockers.length <= row.report.blockers.length) {
         out[row.index] = { ...row.post, body };
+        if (after.blockers.length === 0 && after.score >= THRESHOLD) repaired.add(row.index);
       }
+    }
+    // ما بقي راسباً يُعلَّم صراحةً كي تظهر ملاحظة الجودة للمستخدم بدل تسليم منشور
+    // ضعيف بصمت وكأنه اجتاز الفحص.
+    for (const row of weak) {
+      if (repaired.has(row.index)) continue;
+      out[row.index] = { ...out[row.index], quality_notice: qualityNotice(row) };
     }
     return out;
   } catch (error) {
     console.warn("[autofix] skipped:", error instanceof Error ? error.message : error);
-    return posts;
+    return posts.map((post, index) => {
+      const row = weak.find((w) => w.index === index);
+      return row ? { ...post, quality_notice: qualityNotice(row) } : post;
+    });
   }
+}
+
+/** ملاحظة جودة صريحة تُرفق بمنشور لم يُصلَح، حتى لا يظنه المستخدم مجازاً. */
+function qualityNotice(row: WeakRow): string {
+  const hints = row.report.checks
+    .filter((c) => c.severity !== "pass")
+    .slice(0, 3)
+    .map((c) => c.hint);
+  return `هذا المنشور لم يجتز فاحص الجودة (${row.report.score}/100). راجع قبل النشر: ${hints.join(" — ")}`;
 }
