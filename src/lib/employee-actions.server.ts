@@ -896,12 +896,42 @@ async function requirePage(config: PipedreamConfig, workspaceId: string, account
 }
 
 /** ينفّذ إجراءً فعلياً على حساب مربوط للمساحة. */
+/**
+ * منع تكرار الإجراءات الخارجية (بريد، رسالة، فاتورة، جهة اتصال): ضغطة مزدوجة أو
+ * إعادة محاولة كانت تُرسل الشيء نفسه مرتين. المفتاح = مساحة العمل + الإجراء + القيم.
+ */
+const recentActions = new Map<string, number>();
+const ACTION_DEDUPE_MS = 60_000;
+
+function actionDedupeKey(params: {
+  workspaceId: string;
+  actionId: string;
+  values: Record<string, string>;
+}): string {
+  const values = Object.keys(params.values)
+    .sort()
+    .map((k) => `${k}=${(params.values[k] ?? "").trim()}`)
+    .join("&");
+  return `${params.workspaceId}|${params.actionId}|${values}`;
+}
+
 export async function runEmployeeActionServer(
   admin: Admin,
   params: { workspaceId: string; actionId: string; values: Record<string, string> },
 ): Promise<{ actionId: string; provider: string; result: unknown }> {
+  const dedupeKey = actionDedupeKey(params);
+  const now = Date.now();
+  for (const [k, at] of recentActions) if (now - at > ACTION_DEDUPE_MS) recentActions.delete(k);
+  if (recentActions.has(dedupeKey)) {
+    throw new Error("نفّذنا هذا الإجراء نفسه قبل لحظات — منعنا تكراره. غيّر البيانات أو انتظر دقيقة.");
+  }
+  recentActions.set(dedupeKey, now);
+
   const def = getEmployeeAction(params.actionId);
-  if (!def) throw new Error("إجراء غير معروف.");
+  if (!def) {
+    recentActions.delete(dedupeKey);
+    throw new Error("إجراء غير معروف.");
+  }
 
   const missing = def.inputs
     .filter((i) => i.required && !params.values[i.name]?.trim())
