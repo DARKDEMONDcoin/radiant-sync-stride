@@ -124,7 +124,7 @@ export function detectKind(request: string, text: string, employeeId: string): O
  * تطبيع عربي للمقارنة فقط (لا يُعرض للمستخدم): يوحّد الهمزات والألف المقصورة
  * والتاء المربوطة، ويحذف التشكيل والتطويل والمسافات الزائدة.
  */
-function normalizeArabic(value: string): string {
+export function normalizeArabic(value: string): string {
   return value
     .replace(/[\u064B-\u0652\u0670]/g, "")
     .replace(/\u0640/g, "")

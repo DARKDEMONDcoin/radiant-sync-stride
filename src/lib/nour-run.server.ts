@@ -594,7 +594,7 @@ export const LONG_SKILLS = new Set([
   "launch-campaign",
   "weekly-batch",
   "crisis-playbook",
-  "competitor-teardown",
+  "competitor-benchmark",
   "publish-package",
   "seo-article",
   // مهارات نور الثقيلة: مخرجها جداول طويلة ويحتاج نافذة أوسع بدل قطعه أو انتهاء المهلة.
@@ -921,15 +921,15 @@ export async function executeSkill(
   }
   const system = [
     `أنت ${persona.name}، ${persona.role}`,
+    // سلّم السلطة والالتزام أولاً فعلاً — كما في مسار المحادثة تماماً — كي يحكما
+    // كل ما بعدهما. كان يسبقهما سطر النبرة والوقت فيصير «اقرأه أولاً» غير صحيح.
+    ...governanceBlocks(params.employeeId),
     `تعمل داخل منصة «سهل» لصالح العلامة: ${workspace.name} (${workspace.industry}).`,
     `نبرة العلامة: ${workspace.tone}.`,
     nowBlock(timeZone, ws.country),
     workspace.banned_words?.length
       ? `كلمات ممنوعة تماماً: ${workspace.banned_words.join("، ")}.`
       : "",
-    // سلّم السلطة والالتزام أولاً — كما في مسار المحادثة — كي يحكما معايير
-    // الحِرفة والدليل لا أن يأتيا بعدهما فيصيرا استثناءً.
-    ...governanceBlocks(params.employeeId),
     // نفس طبقات الحوكمة المستخدمة في المحادثة، بنية «عمل» ثابتة — حتى يكون مخرج
     // القدرات والجدولة التلقائية مطابقاً لمخرج المحادثة بلا نصف تعليمات.
     answerPolicyBlock(params.employeeId, "work"),
