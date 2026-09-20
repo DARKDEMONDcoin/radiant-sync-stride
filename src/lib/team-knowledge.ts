@@ -230,7 +230,8 @@ export function handoffBlock(employeeId: string): string {
 /**
  * دستور الجودة المشترك — «أفضل سيستم برومبت»: مبادئ تشغيل تنطبق على الجميع.
  */
-const PUBLIC_CONTENT_EMPLOYEES = new Set(["sonny", "nour", "dana"]);
+/** من يُنتج محتوى عاماً منشوراً (نص أو بصري) — مصدر واحد يستخدمه الامتثال أيضاً. */
+export const PUBLIC_CONTENT_EMPLOYEES = new Set(["sonny", "nour", "dana"]);
 
 export function operatingPrinciples(employeeId: string): string {
   return [
