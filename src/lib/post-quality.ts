@@ -65,7 +65,8 @@ const SPEC: Record<string, Spec> = {
   },
   linkedin: {
     hardLimit: 3000,
-    sweet: [400, 1600],
+    // مطابق لحدود المنصات المكتوبة في platform-limits.ts (600–1200 حرفاً).
+    sweet: [600, 1200],
     hashtags: [3, 5],
     maxEmojis: 3,
     needsMedia: false,

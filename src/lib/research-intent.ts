@@ -94,10 +94,12 @@ export function researchIntent(message: string): ResearchIntent {
   // منع صريح يتقدّم على كل شيء: من قال «بدون بحث» ينتظر رداً فورياً.
   if (SUPPRESS.test(text)) return { ...none, reason: "suppressed" };
 
-  if (EXPLICIT.test(text)) return { wanted: true, explicit: true, reason: "explicit", topic };
-  // شغل داخلي بحت («اكتب بوست عن عروضنا»): بياناتنا ليست على الإنترنت،
-  // والبحث عنها تأخير بلا فائدة. تُستثنى المقارنة الصريحة بالسوق.
+  // شغل داخلي بحت («ابحث عن أسعار خدماتنا»): بياناتنا ليست على الإنترنت،
+  // والبحث عنها تأخير يأتي بنتائج غريبة — يتقدّم حتى على فعل البحث الصريح.
+  // تُستثنى المقارنة الصريحة بالسوق أو ذكر منافس/ترند.
   if (OURS.test(text) && !MARKET.test(text) && !EXTERNAL.test(text)) return none;
+
+  if (EXPLICIT.test(text)) return { wanted: true, explicit: true, reason: "explicit", topic };
 
   if (MARKET.test(text)) return { wanted: true, explicit: false, reason: "market", topic };
   if (EXTERNAL.test(text)) return { wanted: true, explicit: false, reason: "external", topic };
