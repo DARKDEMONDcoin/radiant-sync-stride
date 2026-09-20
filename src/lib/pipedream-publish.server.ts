@@ -142,6 +142,23 @@ async function assertNotDuplicate(
   }
 }
 
+/**
+ * قفل قصير داخل العملية: فحص قاعدة البيانات وحده لا يمنع طلبين متزامنين
+ * (كلاهما يقرأ «لا يوجد» قبل أن يكتب الآخر). المفتاح = مساحة العمل + المنصة + النص.
+ */
+const inFlight = new Map<string, number>();
+
+function claimInFlight(workspaceId: string, provider: string, text: string): () => void {
+  const key = `${workspaceId}|${provider}|${text.trim()}`;
+  const now = Date.now();
+  for (const [k, at] of inFlight) if (now - at > 5 * 60_000) inFlight.delete(k);
+  if (inFlight.has(key)) {
+    throw new Error(`نفس النص قيد النشر الآن على ${provider} — منعنا نشره مرتين.`);
+  }
+  inFlight.set(key, now);
+  return () => inFlight.delete(key);
+}
+
 export async function publishToPlatform(
   admin: Admin,
   params: {
