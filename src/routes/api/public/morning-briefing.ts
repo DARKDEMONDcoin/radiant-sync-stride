@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { secretsMatch } from "@/lib/timing-safe";
 
 /**
  * كرون الإحاطة الصباحية لأمَل: يبني إحاطة اليوم لكل مساحة عمل لم تُبنَ بعد.
@@ -13,7 +14,7 @@ export const Route = createFileRoute("/api/public/morning-briefing")({
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const envSecret = process.env["LOVABLE_CRON_SECRET"];
-        let authorized = Boolean(envSecret) && provided === envSecret;
+        let authorized = secretsMatch(provided, envSecret);
         if (!authorized) {
           const { data: valid } = await supabaseAdmin.rpc("verify_cron_token", {
             _name: "morning-briefing",

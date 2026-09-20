@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { secretsMatch } from "@/lib/timing-safe";
 
 /**
  * مشغّل الجدولة التلقائية لنور: يقرأ الجدولات المستحقة وينفّذها بنفس نواة التنفيذ اليدوية،
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/api/public/nour-automations")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         const envSecret = process.env["LOVABLE_CRON_SECRET"];
-        let authorized = Boolean(envSecret) && provided === envSecret;
+        let authorized = secretsMatch(provided, envSecret);
         if (!authorized) {
           // الرمز الخاص بهذا المسار أولاً؛ ورمز nour-weekly يُقبل توافقاً مع إعدادات
           // كرون قديمة ضُبطت باسمه قبل فصل المسارين.

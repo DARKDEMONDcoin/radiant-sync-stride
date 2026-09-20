@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { secretsMatch } from "@/lib/timing-safe";
 
 /**
  * المجدول الاستباقي: يمرّ يومياً على كل مساحة عمل، يقرأ إشاراتها الحقيقية
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/api/public/proactive")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         const envSecret = process.env["LOVABLE_CRON_SECRET"];
-        let authorized = Boolean(envSecret) && provided === envSecret;
+        let authorized = secretsMatch(provided, envSecret);
         if (!authorized) {
           const { data: valid } = await supabaseAdmin.rpc("verify_cron_token", {
             _name: "proactive",
