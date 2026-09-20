@@ -43,9 +43,12 @@ async function keyMaterial(): Promise<CryptoKey | null> {
 /** يشفّر كائن الإعدادات إلى صيغة تخزين. يعيد الكائن كما هو إن لم يوجد مفتاح. */
 export async function sealConfig(config: Record<string, unknown>): Promise<Record<string, string>> {
   const key = await keyMaterial();
+  // فشل مغلق: بلا مفتاح لا نكتب توكنات بنص صريح في القاعدة إطلاقاً.
   if (!key) {
-    console.error("[credentials] CREDENTIALS_ENC_KEY غير مضبوط — خُزّنت البيانات بلا تشفير.");
-    return config as Record<string, string>;
+    console.error("[credentials] CREDENTIALS_ENC_KEY غير مضبوط — أُلغي حفظ بيانات الربط.");
+    throw new Error(
+      "تعذّر حفظ بيانات الربط: مفتاح التشفير غير مضبوط على الخادم (CREDENTIALS_ENC_KEY). أضفه ثم أعد المحاولة.",
+    );
   }
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const data = new TextEncoder().encode(JSON.stringify(config));

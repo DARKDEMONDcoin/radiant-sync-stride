@@ -38,7 +38,8 @@ async function loadConfig<T>(admin: Admin, workspaceId: string, provider: string
     .eq("provider", provider)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  const config = data?.config as T | undefined;
+  const { openConfig } = await import("./credential-crypto.server");
+  const config = (await openConfig<T>(data?.config)) ?? undefined;
   if (!config) throw new Error("هذه المنصة غير مربوطة بعد — اربطها من صفحة التكاملات.");
   return config;
 }
@@ -50,11 +51,13 @@ async function saveConnection(
   config: Record<string, unknown>,
   account: string,
 ) {
+  // التوكنات لا تُكتب بنص صريح: تُشفَّر AES-GCM مثل ووردبريس تماماً.
+  const { sealConfig } = await import("./credential-crypto.server");
   const { error } = await admin.from("integration_credentials").upsert(
     {
       workspace_id: workspaceId,
       provider,
-      config: config as unknown as Record<string, string>,
+      config: await sealConfig(config),
     },
     { onConflict: "workspace_id,provider" },
   );

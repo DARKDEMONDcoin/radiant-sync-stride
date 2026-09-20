@@ -34,7 +34,7 @@ const JUDGE_SYSTEM = [
   "قواعد حكم عادلة (إلزامية): إن انتهى المخرج بعلامة «…» فهو مقتطع للعرض فقط — لا تخصم على «عدم الاكتمال» بسببها.",
   "لا تخصم على تصريح الموظف بأن رقماً تقديري أو أن حساباً غير مربوط — هذه صحّة لا نقص. لكن اخصم بشدة على أي فراغ داخل نص يُرسل للعميل («(الاسم)»، «(السعر)»، «____») لأن المخرج عندها غير جاهز للإرسال.",
   "كل رقم أو حقيقة ذكرها المالك في طلبه (سعر، نسبة، مدة، عدد صفحات، هبوط ترافيك) معطى ثابت: إعادة استخدامه في المخرج صحيحة تماماً ولا تُخصم عليها ولا تطلب له مصدراً.",
-  "لا تخصم على الطول ما دام كل جزء يخدم الطلب، ولا على غياب بند لم يطلبه المالك.",
+  "لا تخصم على الطول ما دام كل جزء يخدم الطلب، ولا على غياب بند لم يطلبه المالك — إلا عند تجاوز حدٍّ منصوص عليه (حد المنصة، طول البريد، وصف الميتا، عدد الهاشتاقات) فالخصم واجب.",
   "درجة ٨٢ وأعلى تعني «صالح للتسليم كما هو». اخصم فقط على خلل حقيقي: بند مطلوب مفقود، رقم أو حساب خاطئ، ادعاء مخترع، حشو، تناقض، أو مخالفة معيار قبول.",
   'أعد JSON فقط: {"score": 0-100, "issues": ["ملاحظة قابلة للإصلاح", "..."]}',
   "issues: أربع ملاحظات كحد أقصى، كل واحدة إصلاح محدد لا وصف عام. إن كان المخرج ممتازاً أعد قائمة فارغة.",
@@ -124,17 +124,19 @@ export async function judgeAndImprove(input: JudgeInput): Promise<JudgeVerdict> 
   } catch {
     return fallback;
   }
+  // الحَكَم لم يجب: ممنوع اختلاق درجة نجاح. الدرجة تبقى مجهولة (صفر)،
+  // وإن رصد الفاحص الحتمي خللاً نُصلحه بدل تسليم مخرج معطوب.
   if (!verdict) {
-    // الحَكَم لم يجب، لكن الفحص الحتمي رصد خللاً مؤكداً — نصلحه بدل تسليم مخرج معطوب.
     if (!mustFix.length) return fallback;
-    verdict = { score: Math.max(0, 82 - audit.penalty), issues: [] };
+    verdict = { score: 0, issues: [] };
   }
   // ملاحظات الفاحص الحتمي إلزامية: حتى لو رضي الحَكَم عن المخرج، فراغ قالب أو جدول ناقص
   // أو كلمة ممنوعة خلل مؤكد لا يجوز تسليمه.
   const issues = [...new Set([...mustFix, ...verdict.issues])].slice(0, 6);
+  // الخصم الحتمي يُطبَّق مرة واحدة فقط، وهذه هي الدرجة المعروضة والمقارَنة بالعتبة.
   const score = Math.max(0, verdict.score - audit.penalty);
   if (!issues.length || (score >= threshold && !mustFix.length)) {
-    return { score: verdict.score, issues: verdict.issues, output: original, revised: false };
+    return { score, issues: verdict.issues, output: original, revised: false };
   }
   verdict = { score, issues };
 
@@ -142,7 +144,7 @@ export async function judgeAndImprove(input: JudgeInput): Promise<JudgeVerdict> 
   // الإصلاح الموجّه يشمل الآن المخرجات الطويلة أيضاً (مقال ركيزة، خطة، تقرير) لأنها
   // أكبر أثراً عند الرسوب. حاجز الطول أدناه (٧٠٪ من الأصل) يمنع فقدان المحتوى،
   // وما يتجاوز هذا الحجم فعلاً تصعب إعادة كتابته في نداء واحد بلا بتر.
-  if (original.length > 14_000) {
+  if (original.length > 22_000) {
     return { score: verdict.score, issues: verdict.issues, output: original, revised: false };
   }
 
@@ -164,7 +166,7 @@ export async function judgeAndImprove(input: JudgeInput): Promise<JudgeVerdict> 
               .join("\n\n"),
           },
         ],
-        { maxTokens: 14_000, timeoutMs: 90_000, attempts: 1 },
+        { maxTokens: original.length > 12_000 ? 20_000 : 14_000, timeoutMs: 120_000, attempts: 1 },
       )
     ).trim();
 

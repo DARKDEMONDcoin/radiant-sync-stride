@@ -11,8 +11,20 @@ import { freeChat, gatherEvidence, planResearch } from "./nour-research.server";
 import { withBudget } from "./seo-research.server";
 import { memoryBlock } from "./memory.server";
 import { actionTruthRules, sanitizeActionClaims } from "./action-claims";
-import { sharedSystemBlocks, governanceBlocks } from "./team-knowledge";
+import {
+  sharedSystemBlocks,
+  governanceBlocks,
+  employeeDirectory,
+  type EmployeeId,
+} from "./team-knowledge";
 import { playbookFor } from "./playbooks";
+import { answerPolicyBlock } from "./answer-policy";
+import { reasoningDepthBlock } from "./reasoning-depth";
+import { expertMindBlock } from "./expert-mind";
+import { employeeEdgeBlock } from "./employee-edge";
+import { frontierEdgeBlock } from "./frontier-edge";
+import { scopeBoundaryBlock } from "./scope-boundaries";
+import { replyStructureBlock } from "./reply-structure";
 import { ambientPulse, nowBlock, timezoneForCountry } from "./live-context.server";
 
 export type Client = SupabaseClient<Database>;
@@ -420,7 +432,7 @@ export const personas: Record<
   { name: string; role: string; channel: string; kind: string }
 > = {
   sonny: {
-    name: "سِراج",
+    name: employeeDirectory.sonny.name,
     role: [
       "مدير سوشيال ميديا عربي بخبرة 10 أعوام في الخليج ومصر والشام والعراق والمغرب العربي، أدار حسابات علامات تجزئة ومطاعم وعيادات ومتاجر إلكترونية وخدمات B2B.",
       "تملك المنظومة كاملة: استخراج صوت العلامة وأسلوبها البصري، بناء أعمدة المحتوى، تقويم شهري مجدول بالأوقات،",
@@ -435,7 +447,7 @@ export const personas: Record<
   },
 
   eva: {
-    name: "أمَل",
+    name: employeeDirectory.eva.name,
     role: [
       "مساعدة تنفيذية عربية بخبرة 12 عاماً مع مؤسسين ومدراء تنفيذيين في الخليج ومصر.",
       "تملكين المنظومة كاملة: فرز صندوق البريد وتصنيفه، صياغة الردود بصوت المالك، إدارة التقويم وحماية وقت التركيز،",
@@ -448,7 +460,7 @@ export const personas: Record<
     kind: "رد بريد",
   },
   sam: {
-    name: "سالم",
+    name: employeeDirectory.sam.name,
     role: [
       "مسؤول مبيعات عربي بخبرة 12 عاماً في B2B والخدمات والتجزئة بأسواق الخليج ومصر.",
       "تملك المنظومة كاملة: تعريف العميل المثالي، معايير بناء القوائم، تسلسلات التواصل البارد عبر البريد ولينكدإن وواتساب،",
@@ -462,7 +474,7 @@ export const personas: Record<
   },
 
   nour: {
-    name: "نور",
+    name: employeeDirectory.nour.name,
     role: [
       "استراتيجية محتوى وسيو عربي بخبرة 12 عاماً في أسواق الخليج ومصر والشام.",
       "تملك المنظومة كاملة: بحث الكلمات وتجميعها دلالياً، تحليل نتائج البحث وفجوة المنافسين، الخرائط الموضوعية،",
@@ -477,7 +489,7 @@ export const personas: Record<
     kind: "مقال",
   },
   dana: {
-    name: "دانة",
+    name: employeeDirectory.dana.name,
     role: [
       "مديرة تصميم وهوية بصرية بخبرة 10 أعوام في علامات عربية (تجزئة، مطاعم، عيادات، متاجر إلكترونية).",
       "تملكين المنظومة كاملة: بناء الهوية البصرية (ألوان، خطوط عربية، شبكة، أسلوب صور)، مفاهيم الحملات،",
@@ -490,7 +502,7 @@ export const personas: Record<
     kind: "تصميم",
   },
   adam: {
-    name: "آدم",
+    name: employeeDirectory.adam.name,
     role: [
       "محلل بيانات نمو بخبرة 10 أعوام في GA4 وSearch Console ومنصات الإعلانات وأنظمة CRM.",
       "تملك المنظومة كاملة: أُطر المؤشرات، التقارير الدورية، تحليل القمع والتسريب، مراجعة الحملات وإعادة توزيع الميزانية،",
@@ -884,11 +896,20 @@ export async function executeSkill(
     // سلّم السلطة والالتزام أولاً — كما في مسار المحادثة — كي يحكما معايير
     // الحِرفة والدليل لا أن يأتيا بعدهما فيصيرا استثناءً.
     ...governanceBlocks(params.employeeId),
+    // نفس طبقات الحوكمة المستخدمة في المحادثة، بنية «عمل» ثابتة — حتى يكون مخرج
+    // القدرات والجدولة التلقائية مطابقاً لمخرج المحادثة بلا نصف تعليمات.
+    answerPolicyBlock(params.employeeId, "work"),
+    reasoningDepthBlock(params.employeeId as EmployeeId, "work"),
+    expertMindBlock(params.employeeId, "work"),
+    employeeEdgeBlock(params.employeeId),
+    frontierEdgeBlock(params.employeeId as EmployeeId),
+    scopeBoundaryBlock(params.employeeId, `${skill.title} ${requestSummary}`),
     craft[params.employeeId] ? `## معايير حِرفتك\n${craft[params.employeeId]}` : "",
     playbookFor(
       params.employeeId,
       `${params.skillId} ${Object.values(params.values ?? {}).join(" ")}`,
     ),
+    replyStructureBlock(params.employeeId),
     qualityCriteria[params.employeeId]?.length
       ? `## معايير قبول المخرج (راجعها بنداً بنداً قبل الكتابة ثم قبل التسليم)\n${(qualityCriteria[params.employeeId] ?? []).map((criterion, index) => `${index + 1}) ${criterion}`).join("\n")}`
       : "",
