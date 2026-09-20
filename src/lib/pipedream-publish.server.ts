@@ -238,6 +238,17 @@ export async function publishToPlatform(
   return { provider: params.provider, accountId: account.account_id, result };
 }
 
+/** إكس يقصّ ما زاد عن 280 حرفاً — نرفض بدل أن نبتر النص بلا علم صاحبه. */
+function assertXLength(text: string): string {
+  const value = text.trim();
+  if (value.length > 280) {
+    throw new Error(
+      `نص إكس ${value.length} حرفاً والحد 280 — اطلب من الموظف اختصاره ثم أعد النشر (لن نبتر نصك).`,
+    );
+  }
+  return value;
+}
+
 /**
  * نشر مباشر على واجهة المنصة نفسها عبر وكيل Pipedream (بلا توكنات لدينا).
  * يعيد undefined إن لم يكن للمنصة مسار مباشر بعد.
@@ -256,7 +267,7 @@ async function publishDirect(
       accountId,
       method: "POST",
       url: "https://api.twitter.com/2/tweets",
-      body: { text: text.slice(0, 280) },
+      body: { text: assertXLength(text) },
     });
   }
 
@@ -376,6 +387,10 @@ async function publishMeta(
           "إنستجرام رفض الوسائط — استخدم MP4 عمودياً (9:16) أقل من ٩٠ ثانية أو صوراً JPG.",
         );
     }
+    // لا نكمل النشر على حاوية غير جاهزة: نُبلغ بدل أن نفشل صامتين.
+    throw new Error(
+      "إنستجرام لم ينهِ معالجة الوسائط خلال دقيقة ونصف — جرّب النشر بعد قليل أو استخدم ملفاً أخف.",
+    );
   };
 
   if (provider === "facebook") {
@@ -508,7 +523,7 @@ async function publishMeta(
 function textProps(provider: string, text: string): Record<string, string> {
   switch (provider) {
     case "x":
-      return { text: text.slice(0, 280) };
+      return { text: assertXLength(text) };
     case "linkedin":
       return { text };
     case "slack":
