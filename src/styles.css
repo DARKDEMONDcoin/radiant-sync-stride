@@ -783,9 +783,10 @@
     animation: none;
   }
 
+  .sahl-upgrade-dots::before,
   .sahl-upgrade-dots::after {
     animation: none;
-    mask-position: 50% 0;
+    opacity: 0.35;
   }
 }
 
