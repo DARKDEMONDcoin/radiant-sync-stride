@@ -51,11 +51,13 @@ async function saveConnection(
   config: Record<string, unknown>,
   account: string,
 ) {
+  // التوكنات لا تُكتب بنص صريح: تُشفَّر AES-GCM مثل ووردبريس تماماً.
+  const { sealConfig } = await import("./credential-crypto.server");
   const { error } = await admin.from("integration_credentials").upsert(
     {
       workspace_id: workspaceId,
       provider,
-      config: config as unknown as Record<string, string>,
+      config: await sealConfig(config),
     },
     { onConflict: "workspace_id,provider" },
   );
