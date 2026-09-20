@@ -55,7 +55,12 @@ export async function verifyTokenMatches(admin: Admin, token: string): Promise<b
     .from("integration_credentials")
     .select("config")
     .eq("provider", "whatsapp");
-  return (data ?? []).some((row) => (row.config as StoredConfig)?.verifyToken === token);
+  const { openConfig } = await import("./credential-crypto.server");
+  for (const row of data ?? []) {
+    const config = await openConfig<StoredConfig>(row.config);
+    if (config?.verifyToken === token) return true;
+  }
+  return false;
 }
 
 /**
@@ -78,13 +83,14 @@ export async function saveWhatsappFromMeta(
     .eq("workspace_id", workspaceId)
     .eq("provider", "whatsapp")
     .maybeSingle();
-  const previous = (existing?.config ?? {}) as StoredConfig;
+  const { openConfig, sealConfig } = await import("./credential-crypto.server");
+  const previous = ((await openConfig<StoredConfig>(existing?.config)) ?? {}) as StoredConfig;
 
   const { error } = await admin.from("integration_credentials").upsert(
     {
       workspace_id: workspaceId,
       provider: "whatsapp",
-      config: {
+      config: await sealConfig({
         phoneNumberId:
           previous.phoneNumberId && params.phones.some((p) => p.id === previous.phoneNumberId)
             ? previous.phoneNumberId
@@ -94,7 +100,7 @@ export async function saveWhatsappFromMeta(
         displayNumber: chosen.displayNumber,
         phones: params.phones,
         verifyToken: previous.verifyToken ?? crypto.randomUUID().replace(/-/g, ""),
-      },
+      }),
     },
     { onConflict: "workspace_id,provider" },
   );
@@ -120,7 +126,8 @@ export async function whatsappCreds(
     .eq("workspace_id", workspaceId)
     .eq("provider", "whatsapp")
     .maybeSingle();
-  return toCreds(workspaceId, data?.config as StoredConfig | undefined);
+  const { openConfig } = await import("./credential-crypto.server");
+  return toCreds(workspaceId, (await openConfig<StoredConfig>(data?.config)) ?? undefined);
 }
 
 /** يعثر على مساحة العمل صاحبة رقم الإرسال الذي وصلت إليه الرسالة. */
@@ -132,8 +139,9 @@ export async function workspaceByPhoneNumberId(
     .from("integration_credentials")
     .select("workspace_id, config")
     .eq("provider", "whatsapp");
+  const { openConfig } = await import("./credential-crypto.server");
   for (const row of data ?? []) {
-    const config = row.config as StoredConfig;
+    const config = await openConfig<StoredConfig>(row.config);
     if (config?.phoneNumberId !== phoneNumberId) continue;
     const creds = toCreds(row.workspace_id, config);
     if (creds) return { workspaceId: row.workspace_id, creds };
