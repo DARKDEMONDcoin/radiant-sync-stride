@@ -121,6 +121,22 @@ export function detectKind(request: string, text: string, employeeId: string): O
 
 
 /**
+ * تطبيع عربي للمقارنة فقط (لا يُعرض للمستخدم): يوحّد الهمزات والألف المقصورة
+ * والتاء المربوطة، ويحذف التشكيل والتطويل والمسافات الزائدة.
+ */
+function normalizeArabic(value: string): string {
+  return value
+    .replace(/[\u064B-\u0652\u0670]/g, "")
+    .replace(/\u0640/g, "")
+    .replace(/[\u0622\u0623\u0625\u0671]/g, "\u0627")
+    .replace(/\u0649/g, "\u064A")
+    .replace(/\u0629/g, "\u0647")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+/**
  * يفحص مخرجاً نصياً ويعيد ملاحظات إصلاح محددة. لا يستدعي أي نموذج — حتمي وسريع.
  */
 export function auditOutput(input: {
@@ -133,7 +149,7 @@ export function auditOutput(input: {
   const text = (input.text ?? "").trim();
   const issues: OutputIssue[] = [];
   let penalty = 0;
-  if (text.length < 40) return { penalty: 0, issues };
+  if (!text) return { penalty: 0, issues };
 
   const kind = input.kind ?? detectKind(input.request ?? "", text, input.employeeId);
   const add = (id: string, hint: string, cost: number) => {
@@ -142,12 +158,31 @@ export function auditOutput(input: {
     penalty += cost;
   };
 
+  // نص مطبَّع للمقارنات اللغوية: توحيد الهمزات والألف المقصورة والتاء المربوطة،
+  // وحذف التشكيل والتطويل — كي لا تمرّ كلمة ممنوعة بتغيير همزة واحدة.
+  const norm = normalizeArabic(text);
+
+  // فحص الفراغات والكلمات الممنوعة يسري على أي نص مهما قصر: تغريدة من ٣٠ حرفاً
+  // فيها «[اسم المدينة]» كانت تمرّ بلا ملاحظة.
   if (PLACEHOLDER.some((re) => re.test(text)))
     add(
       "placeholder",
       "احذف كل فراغ قالب ([اسم…]، {{…}}، XXX) واستبدله بمعلومة حقيقية من سياق المالك أو بصياغة طبيعية بلا فراغ.",
       18,
     );
+
+  const bannedShort = (input.bannedWords ?? []).filter(
+    (w) => w.trim() && norm.includes(normalizeArabic(w.trim())),
+  );
+  if (bannedShort.length)
+    add(
+      "banned",
+      `احذف الكلمات الممنوعة في صوت العلامة: ${bannedShort.slice(0, 3).join("، ")}.`,
+      20,
+    );
+
+  // بقية الفحوص تحتاج نصاً له جسد فعلي.
+  if (text.length < 40) return { penalty, issues };
 
   if (TRUNCATION.some((re) => re.test(text)))
     add(
@@ -159,17 +194,13 @@ export function auditOutput(input: {
   if (brokenTable(text))
     add("table", "أكمل صفوف الجدول بحيث يتساوى عدد الأعمدة في كل صف مع رأس الجدول.", 10);
 
-  const filler = FILLER.filter((f) => text.includes(f));
+  const filler = FILLER.filter((f) => norm.includes(normalizeArabic(f)));
   if (filler.length)
     add("filler", `احذف الحشو بلا معلومة: ${filler.slice(0, 3).join("، ")}، وضع محتوى محدداً مكانه.`, 8);
 
-  const over = OVERCLAIM.filter((f) => text.includes(f));
+  const over = OVERCLAIM.filter((f) => norm.includes(normalizeArabic(f)));
   if (over.length)
     add("overclaim", `احذف الادعاء المطلق (${over[0]}) أو اربطه بدليل محدد.`, 12);
-
-  const banned = (input.bannedWords ?? []).filter((w) => w.trim() && text.includes(w.trim()));
-  if (banned.length)
-    add("banned", `احذف الكلمات الممنوعة في صوت العلامة: ${banned.slice(0, 3).join("، ")}.`, 20);
 
   // تكرار فقرة كاملة — علامة على لصق مزدوج.
   const paras = text
