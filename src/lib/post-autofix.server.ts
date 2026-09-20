@@ -55,11 +55,35 @@ export async function autofixPosts(
         bannedWords: banned,
       }),
     }))
-    .filter((row) => row.report.blockers.length > 0 || row.report.score < THRESHOLD)
-    .slice(0, 4);
+    .filter((row) => row.report.blockers.length > 0 || row.report.score < THRESHOLD);
 
   if (!weak.length) return posts;
 
+  // كان الإصلاح يقتصر على أول أربعة منشورات ضعيفة، فيخرج الخامس فما بعده راسباً
+  // بلا علم أحد. الآن نعالجهم جميعاً على دفعات من أربعة (حدّ نداء واحد آمن).
+  const batches: (typeof weak)[] = [];
+  for (let i = 0; i < weak.length; i += 4) batches.push(weak.slice(i, i + 4));
+
+  let out = posts.slice();
+  for (const batch of batches) out = await fixBatch(apiKey, out, batch, opts, banned, mediaOf);
+  return out;
+}
+
+type WeakRow = {
+  post: Post;
+  index: number;
+  provider: string;
+  report: ReturnType<typeof scorePost>;
+};
+
+async function fixBatch(
+  apiKey: string,
+  posts: Post[],
+  weak: WeakRow[],
+  opts: { bannedWords?: string[]; dialect?: string; hasMedia?: boolean },
+  banned: string[],
+  mediaOf: (post: Post) => boolean,
+): Promise<Post[]> {
   const brief = weak
     .map((row, i) =>
       [
