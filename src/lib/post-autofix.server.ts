@@ -15,7 +15,8 @@ type Post = { title?: string; kind?: string; channel?: string; body?: string } &
   unknown
 >;
 
-const THRESHOLD = 72;
+/** مطابقة لحدّ «جيد» في post-quality.grade: ما دون ٧٥ مصنَّف «يحتاج تحسين» فيُصلَح. */
+const THRESHOLD = 75;
 
 function providerOf(post: Post): string | null {
   const p = normalizeChannel(typeof post.channel === "string" ? post.channel : null);

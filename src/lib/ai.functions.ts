@@ -698,13 +698,19 @@ export async function runEmployeeTurn(
         teamActivity,
       }),
       expertMindBlock(data.employeeId, intent),
-      intent === "work" ? employeeEdgeBlock(data.employeeId) : "",
+      // كتل التميّز تُحقن للعمل وللأسئلة الاستشارية معاً (كما في مسار المهام التلقائية)،
+      // وتُستثنى الدردشة وحدها. قبلها كان السؤال الاستشاري يخسر عمقاً تحصل عليه الأتمتة.
+      intent !== "smalltalk" ? employeeEdgeBlock(data.employeeId) : "",
       workspace.banned_words?.length
         ? `كلمات ممنوعة تماماً: ${workspace.banned_words.join("، ")}.`
         : "",
-      craft[data.employeeId] ? `## معايير حِرفتك\n${craft[data.employeeId]}` : "",
-      intent === "work" ? frontierEdgeBlock(data.employeeId as EmployeeId) : "",
-      playbookFor(data.employeeId, data.message),
+      // ملف الحِرفة والدليل الميداني ثقيلان ويتعارضان مع أمر «رد قصير بلا بنية»
+      // في الدردشة، فلا يُحقنان في التحيات والمجاملات.
+      intent !== "smalltalk" && craft[data.employeeId]
+        ? `## معايير حِرفتك\n${craft[data.employeeId]}`
+        : "",
+      intent !== "smalltalk" ? frontierEdgeBlock(data.employeeId as EmployeeId) : "",
+      intent !== "smalltalk" ? playbookFor(data.employeeId, data.message) : "",
       scopeBoundaryBlock(data.employeeId, data.message),
       sirajMemory,
       nourMemory,
@@ -751,8 +757,8 @@ export async function runEmployeeTurn(
         : "لا تضف قسم «الخطوة التالية» ولا اقتراحات خدمات في هذا الرد.",
       "ممنوع في الرد: JSON أو أقواس تقنية أو أسماء أدوات داخلية أو روابط خام مكررة أو نص إنجليزي غير ضروري أو رموز تعبيرية أكثر من واحد في القسم.",
       // بنية سِراج ونور صارت في reply-structure.ts مع بقية الفريق (مصدر واحد
-      // يستخدمه مسار المحادثة ومسار المهام التلقائية معاً). نور تحتاجها في الأسئلة أيضاً.
-      data.employeeId === "nour" && intent !== "work" ? replyStructureBlock("nour") : "",
+      // يستخدمه مسار المحادثة ومسار المهام التلقائية معاً). لا تُحقن خارج طلبات العمل:
+      // في الدردشة والأسئلة تمنع سياسة الرد العناوين و«الخطوة التالية»، فحقنها تناقض صريح.
       intent === "work" ? replyStructureBlock(data.employeeId) : "",
 
       intent === "work"

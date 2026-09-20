@@ -34,7 +34,13 @@ export const Route = createFileRoute("/api/public/pipedream-webhook")({
           .eq("name", "PIPEDREAM_WEBHOOK_SECRET")
           .maybeSingle();
         const expected = secret?.value ?? process.env["PIPEDREAM_WEBHOOK_SECRET"] ?? "";
-        if (!expected || token !== expected) return new Response("Unauthorized", { status: 401 });
+        // مقارنة ثابتة الزمن: المقارنة النصية المباشرة تتسرّب منها أطوال التطابق
+        // فتسمح نظرياً باستنتاج السر حرفاً حرفاً (نفس أسلوب ويبهوك واتساب).
+        const sameSecret =
+          expected.length > 0 &&
+          token.length === expected.length &&
+          token.split("").every((ch, i) => ch === expected[i]);
+        if (!sameSecret) return new Response("Unauthorized", { status: 401 });
 
         const payload = (await request.json()) as Event;
         const externalUserId = payload.external_user_id ?? payload.account?.external_id ?? "";

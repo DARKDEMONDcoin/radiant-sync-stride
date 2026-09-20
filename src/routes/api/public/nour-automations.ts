@@ -17,11 +17,18 @@ export const Route = createFileRoute("/api/public/nour-automations")({
         const envSecret = process.env["LOVABLE_CRON_SECRET"];
         let authorized = Boolean(envSecret) && provided === envSecret;
         if (!authorized) {
-          const { data: valid } = await supabaseAdmin.rpc("verify_cron_token", {
-            _name: "nour-weekly",
-            _token: provided,
-          });
-          authorized = valid === true;
+          // الرمز الخاص بهذا المسار أولاً؛ ورمز nour-weekly يُقبل توافقاً مع إعدادات
+          // كرون قديمة ضُبطت باسمه قبل فصل المسارين.
+          for (const name of ["nour-automations", "nour-weekly"]) {
+            const { data: valid } = await supabaseAdmin.rpc("verify_cron_token", {
+              _name: name,
+              _token: provided,
+            });
+            if (valid === true) {
+              authorized = true;
+              break;
+            }
+          }
         }
         if (!authorized) return new Response("unauthorized", { status: 401 });
 

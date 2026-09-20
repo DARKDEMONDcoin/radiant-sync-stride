@@ -24,11 +24,14 @@ export async function learningBlock(client: Client, workspaceId: string, employe
     .order("confidence", { ascending: false })
     .limit(6);
   const experimentPercent = settings?.experiment_percent ?? 10;
-  const selected = (data ?? []).filter(
-    (lesson) =>
-      lesson.status === "active" ||
-      (lesson.risk_level === "low" && Math.random() * 100 < experimentPercent),
-  );
+  // الدروس المعتمدة تدخل عيّنة التجربة الصامتة أياً كانت درجة مخاطرتها، وإلا فالدروس
+  // عالية المخاطرة لا تصل أي رد أبداً فلا تُقاس ولا تُرقّى (حلقة مغلقة على نفسها).
+  // عالية المخاطرة تدخل بنصف النسبة، وترقيتها التلقائية تبقى ممنوعة (قرار المالك وحده).
+  const selected = (data ?? []).filter((lesson) => {
+    if (lesson.status === "active") return true;
+    const share = lesson.risk_level === "low" ? experimentPercent : experimentPercent / 2;
+    return Math.random() * 100 < share;
+  });
   /**
    * تعلّم متبادل بين الزملاء: ما تعلّمه موظف عن **أسلوب هذه العلامة وتفضيلات مالكها**
    * ينفع بقية الفريق. نشارك دروس ملاحظات المالك فقط (owner_feedback) لأنها عن العلامة
