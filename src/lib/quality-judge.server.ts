@@ -166,7 +166,7 @@ export async function judgeAndImprove(input: JudgeInput): Promise<JudgeVerdict> 
               .join("\n\n"),
           },
         ],
-        { maxTokens: 14_000, timeoutMs: 90_000, attempts: 1 },
+        { maxTokens: original.length > 12_000 ? 20_000 : 14_000, timeoutMs: 120_000, attempts: 1 },
       )
     ).trim();
 
