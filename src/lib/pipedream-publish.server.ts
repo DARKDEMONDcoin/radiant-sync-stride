@@ -115,6 +115,33 @@ async function pickMetaAccount(
     : new Error("لا يوجد ربط بصلاحيات النشر على ميتا — أعد الربط من صفحة التكاملات.");
 }
 
+/**
+ * منع النشر المكرر: إعادة المحاولة (أو ضغطة ثانية) كانت تنشر النص مرتين على
+ * المنصة. نرفض نصاً مطابقاً نُشر على المنصة نفسها خلال آخر ١٠ دقائق.
+ */
+async function assertNotDuplicate(
+  admin: Admin,
+  workspaceId: string,
+  provider: string,
+  text: string,
+): Promise<void> {
+  const since = new Date(Date.now() - 10 * 60_000).toISOString();
+  const { data } = await admin
+    .from("social_posts")
+    .select("id, body")
+    .eq("workspace_id", workspaceId)
+    .eq("provider", provider)
+    .eq("status", "published")
+    .gte("published_at", since)
+    .limit(20);
+  const target = text.trim();
+  if ((data ?? []).some((row) => (row.body ?? "").trim() === target)) {
+    throw new Error(
+      `هذا النص نُشر بالفعل على ${provider} خلال آخر ١٠ دقائق — منعنا نشره مرتين. عدّل النص أو انتظر قليلاً.`,
+    );
+  }
+}
+
 export async function publishToPlatform(
   admin: Admin,
   params: {
@@ -129,6 +156,8 @@ export async function publishToPlatform(
 ): Promise<PublishResult> {
   const app = pipedreamApp(params.provider);
   const metaProxy = params.provider === "instagram" || params.provider === "facebook";
+
+  await assertNotDuplicate(admin, params.workspaceId, params.provider, params.text);
 
   const allMedia = (
     params.media?.length
