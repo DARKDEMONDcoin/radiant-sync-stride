@@ -103,7 +103,13 @@ export async function judgeAndImprove(input: JudgeInput): Promise<JudgeVerdict> 
     input.criteria?.length ? `معايير القبول:\n- ${input.criteria.join("\n- ")}` : "",
     input.bannedWords?.length ? `كلمات ممنوعة تماماً: ${input.bannedWords.join("، ")}` : "",
     mustFix.length ? `أخطاء رصدها فاحص آلي (خذها بعين الاعتبار):\n- ${mustFix.join("\n- ")}` : "",
-    `المخرج:\n${clip(original, 28_000)}`,
+    // المخرجات الطويلة جداً كانت تُقطع عند ٢٨ ألف حرف فيحكم الحَكَم على أولها فقط
+    // ويمرّ ذيلها بلا فحص. نعرض البداية والنهاية معاً حتى لا يوجد جزء غير مفحوص فعلياً.
+    `المخرج:\n${
+      original.length > 56_000
+        ? `${clip(original, 34_000)}\n\n[…جزء أوسط محذوف للاختصار…]\n\n${original.slice(-20_000)}`
+        : original
+    }`,
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -135,8 +141,19 @@ export async function judgeAndImprove(input: JudgeInput): Promise<JudgeVerdict> 
   const issues = [...new Set([...mustFix, ...verdict.issues])].slice(0, 6);
   // الخصم الحتمي يُطبَّق مرة واحدة فقط، وهذه هي الدرجة المعروضة والمقارَنة بالعتبة.
   const score = Math.max(0, verdict.score - audit.penalty);
-  if (!issues.length || (score >= threshold && !mustFix.length)) {
+  // ثغرة كانت تمرّ: حَكَم كسول يرجّع «لا ملاحظات» بدرجة راسبة، فيُسلَّم المخرج
+  // لأن قائمة الملاحظات فارغة. الدرجة الراسبة وحدها سبب كافٍ لإعادة الكتابة.
+  if (!issues.length && score < threshold) {
+    verdict = {
+      score,
+      issues: [
+        "أعد كتابة المخرج بجودة أعلى: وضوح الخلاصة، اكتمال كل قسم، أرقام بمصادرها، وخطوة تالية واحدة محددة.",
+      ],
+    };
+  } else if (!issues.length || (score >= threshold && !mustFix.length)) {
     return { score, issues: verdict.issues, output: original, revised: false };
+  } else {
+    verdict = { score, issues };
   }
   verdict = { score, issues };
 
