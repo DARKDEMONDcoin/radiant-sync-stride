@@ -59,15 +59,28 @@ export async function api<T = unknown>(
       `sahl-${ctx.workspaceId}-${stableHash(`${url}|${rawBody ?? ""}|${init.json ? JSON.stringify(init.json) : ""}`)}`;
   }
 
-  return proxyRequest<T>(ctx.config, {
-    workspaceId: ctx.workspaceId,
-    accountId: ctx.accountId,
-    url,
-    method: method0,
-    ...(init.json === undefined ? {} : { body: init.json }),
-    ...(rawBody === undefined ? {} : { rawBody }),
-    ...(Object.keys(headers).length ? { headers } : {}),
-  });
+  try {
+    return await proxyRequest<T>(ctx.config, {
+      workspaceId: ctx.workspaceId,
+      accountId: ctx.accountId,
+      url,
+      method: method0,
+      ...(init.json === undefined ? {} : { body: init.json }),
+      ...(rawBody === undefined ? {} : { rawBody }),
+      ...(Object.keys(headers).length ? { headers } : {}),
+    });
+  } catch (error) {
+    // ماكرو لم يُعوَّض (مثل توكن بوت تيليجرام أو حقول الحساب): الرسالة الخام
+    // تقنية وتنسب الخطأ للمكان الخطأ — نترجمها إلى خطوة يفهمها المالك.
+    const message = error instanceof Error ? error.message : String(error);
+    if (/\{\{|custom_fields|\$auth\./.test(message)) {
+      const host = new URL(url).hostname.replace(/^www\./, "");
+      throw new Error(
+        `ربط ${host} ناقص: بيانات الحساب لم تصل من التكامل. افتح صفحة التكاملات وأعد ربط الحساب ثم أعد المحاولة.`,
+      );
+    }
+    throw error;
+  }
 }
 
 export const v = (ctx: DirectContext, name: string): string => (ctx.values[name] ?? "").trim();
