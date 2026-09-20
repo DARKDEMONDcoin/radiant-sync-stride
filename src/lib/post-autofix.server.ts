@@ -161,3 +161,12 @@ async function fixBatch(
     });
   }
 }
+
+/** ملاحظة جودة صريحة تُرفق بمنشور لم يُصلَح، حتى لا يظنه المستخدم مجازاً. */
+function qualityNotice(row: WeakRow): string {
+  const hints = row.report.checks
+    .filter((c) => c.severity !== "pass")
+    .slice(0, 3)
+    .map((c) => c.hint);
+  return `هذا المنشور لم يجتز فاحص الجودة (${row.report.score}/100). راجع قبل النشر: ${hints.join(" — ")}`;
+}
