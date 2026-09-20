@@ -32,6 +32,7 @@ export async function api<T = unknown>(
 ): Promise<T> {
   const headers: Record<string, string> = { ...(init.headers ?? {}) };
   let rawBody: string | undefined;
+  const method0 = init.method ?? (init.json || init.form || init.text !== undefined ? "POST" : "GET");
   if (init.form) {
     rawBody = new URLSearchParams(init.form).toString();
     headers["content-type"] = "application/x-www-form-urlencoded";
