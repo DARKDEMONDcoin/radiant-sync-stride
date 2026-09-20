@@ -6,7 +6,7 @@
  * كل موظف على دراية كاملة بالفريق والمنصة، ويحيل الطلبات لزميله الصحيح بدل الاعتذار.
  */
 import { authorityBlock } from "./authority";
-import { complianceBlock } from "./compliance";
+import { complianceBlock, PUBLIC_CONTENT_EMPLOYEES } from "./compliance";
 import { platformLimitsBlock } from "./platform-limits";
 
 export type EmployeeId = "sonny" | "eva" | "sam" | "nour" | "dana" | "adam";
@@ -230,8 +230,6 @@ export function handoffBlock(employeeId: string): string {
 /**
  * دستور الجودة المشترك — «أفضل سيستم برومبت»: مبادئ تشغيل تنطبق على الجميع.
  */
-/** من يُنتج محتوى عاماً منشوراً (نص أو بصري) — مصدر واحد يستخدمه الامتثال أيضاً. */
-export const PUBLIC_CONTENT_EMPLOYEES = new Set(["sonny", "nour", "dana"]);
 
 export function operatingPrinciples(employeeId: string): string {
   return [
