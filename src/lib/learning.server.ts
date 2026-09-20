@@ -385,7 +385,9 @@ export async function runLearningCycle(client: Client, workspaceId: string) {
     .select("enabled, auto_promote_low_risk, minimum_evidence, minimum_improvement")
     .eq("workspace_id", workspaceId)
     .maybeSingle();
-  if (settings?.enabled === false) return { created: 0, evaluated: 0, promoted: 0, rolledBack: 0 };
+  // نفس شكل النتيجة الكاملة حتى عند التعطيل — غياب selfLessons كان يظهر كـundefined في التقارير.
+  if (settings?.enabled === false)
+    return { created: 0, selfLessons: 0, evaluated: 0, promoted: 0, rolledBack: 0 };
 
   const { data: employeeRows } = await client
     .from("employee_runs")
