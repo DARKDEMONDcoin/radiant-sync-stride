@@ -926,12 +926,21 @@ export async function runEmployeeActionServer(
     throw new Error("نفّذنا هذا الإجراء نفسه قبل لحظات — منعنا تكراره. غيّر البيانات أو انتظر دقيقة.");
   }
   recentActions.set(dedupeKey, now);
-
-  const def = getEmployeeAction(params.actionId);
-  if (!def) {
+  try {
+    return await runEmployeeActionInner(admin, params);
+  } catch (error) {
+    // فشل = لم يُنفَّذ شيء، فنحرّر المفتاح ليعيد المالك المحاولة فوراً.
     recentActions.delete(dedupeKey);
-    throw new Error("إجراء غير معروف.");
+    throw error;
   }
+}
+
+async function runEmployeeActionInner(
+  admin: Admin,
+  params: { workspaceId: string; actionId: string; values: Record<string, string> },
+): Promise<{ actionId: string; provider: string; result: unknown }> {
+  const def = getEmployeeAction(params.actionId);
+  if (!def) throw new Error("إجراء غير معروف.");
 
   const missing = def.inputs
     .filter((i) => i.required && !params.values[i.name]?.trim())
