@@ -429,7 +429,7 @@ async function publishMeta(
         workspaceId,
         accountId,
         method: "POST",
-        url: `https://graph.facebook.com/v23.0/${page.id}/videos?${new URLSearchParams({
+        url: `${GRAPH}/${page.id}/videos?${new URLSearchParams({
           file_url: videoUrl,
           description: text,
           access_token: page.token,
