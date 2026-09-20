@@ -55,9 +55,13 @@ export const Route = createFileRoute("/api/public/nour-automations")({
               const { autoPublish } = await import("@/lib/publish-core.server");
               const article = toArticle(run.output);
               const result = await autoPublish(supabaseAdmin, row.workspace_id, article, "draft");
-              published = result
-                ? `${result.provider}${result.link ? ` · ${result.link}` : ""}`
-                : null;
+              if (result?.error) {
+                publishError = result.error;
+              } else {
+                published = result
+                  ? `${result.provider}${result.link ? ` · ${result.link}` : ""}`
+                  : null;
+              }
             }
 
             await supabaseAdmin
