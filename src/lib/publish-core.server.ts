@@ -14,6 +14,8 @@ export type AutoPublishResult = {
   provider: string;
   link: string | null;
   status: "draft" | "publish";
+  /** سبب الفشل إن حاولنا النشر وفشل — لا يُترك null غامضاً يخلط «غير مربوط» بـ«فشل». */
+  error?: string;
 };
 
 async function config<T>(admin: Admin, workspaceId: string, provider: string): Promise<T | null> {
@@ -43,6 +45,9 @@ export async function autoPublish(
   status: "draft" | "publish" = "draft",
 ): Promise<AutoPublishResult | null> {
   const connected = await connectedProviders(admin, workspaceId);
+  // نجمع أسباب الفشل بدل ابتلاعها في console، حتى يفرّق المستدعي بين «لا منصة مربوطة»
+  // و«حاولنا وفشلنا» فيعرض السبب للمستخدم ويعيد المحاولة بوعي.
+  const failures: string[] = [];
 
   if (connected.has("wordpress")) {
     const wp = await config<{ siteUrl: string; username: string; appPassword: string }>(
@@ -63,7 +68,8 @@ export async function autoPublish(
         const post = (await res.json()) as { link?: string };
         return { provider: "wordpress", link: post.link ?? null, status };
       }
-      console.error("[auto-publish] wordpress failed", res.status);
+      const detail = (await res.text().catch(() => "")).slice(0, 200);
+      failures.push(`ووردبريس [${res.status}]${detail ? `: ${detail}` : ""}`);
     }
   }
 
@@ -74,7 +80,7 @@ export async function autoPublish(
         const post = await ghostPublish(gh, article, status);
         return { provider: "ghost", link: post.url ?? null, status };
       } catch (error) {
-        console.error("[auto-publish] ghost failed", error);
+        failures.push(`Ghost: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
   }
@@ -113,9 +119,13 @@ export async function autoPublish(
           status,
         };
       }
-      console.error("[auto-publish] shopify failed", res.status);
+      const detail = (await res.text().catch(() => "")).slice(0, 200);
+      failures.push(`Shopify [${res.status}]${detail ? `: ${detail}` : ""}`);
     }
   }
 
+  if (failures.length) {
+    return { provider: "auto", link: null, status, error: failures.join(" | ") };
+  }
   return null;
 }
