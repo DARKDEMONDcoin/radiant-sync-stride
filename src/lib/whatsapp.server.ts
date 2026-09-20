@@ -170,19 +170,46 @@ async function graph<T>(
   }
 
   if (!creds.token) throw new Error("قناة واتساب غير مربوطة.");
-  const res = await fetch(`${GRAPH}${path}`, {
-    method: init?.method ?? "GET",
-    // بلا مهلة كان الطلب يعلّق حتى تموت الدالة كلها إن تأخّر Graph.
-    signal: AbortSignal.timeout(20_000),
-    headers: {
-      Authorization: `Bearer ${creds.token}`,
-      "Content-Type": "application/json",
-    },
-    ...(init?.body === undefined ? {} : { body: JSON.stringify(init.body) }),
-  });
-  const text = await res.text();
-  if (!res.ok) throw new Error(`WhatsApp API failed [${res.status}]: ${text.slice(0, 400)}`);
-  return (text ? JSON.parse(text) : {}) as T;
+  // إعادة محاولة على الفشل العابر (429 أو عطل مؤقت) بنفس سياسة ميتا —
+  // كان خطأ ازدحام واحد يُسقط الرسالة نهائياً بلا محاولة ثانية.
+  const { isTransientMetaFailure } = await import("./meta.server");
+  const delays = [400, 1200, 3000];
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt <= delays.length; attempt += 1) {
+    let res: Response;
+    try {
+      res = await fetch(`${GRAPH}${path}`, {
+        method: init?.method ?? "GET",
+        // بلا مهلة كان الطلب يعلّق حتى تموت الدالة كلها إن تأخّر Graph.
+        signal: AbortSignal.timeout(20_000),
+        headers: {
+          Authorization: `Bearer ${creds.token}`,
+          "Content-Type": "application/json",
+        },
+        ...(init?.body === undefined ? {} : { body: JSON.stringify(init.body) }),
+      });
+    } catch (networkError) {
+      lastError =
+        networkError instanceof Error ? networkError : new Error("تعذّر الاتصال بخوادم واتساب.");
+      const delay = delays[attempt];
+      if (delay === undefined) break;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      continue;
+    }
+    const text = await res.text();
+    if (res.ok) return (text ? JSON.parse(text) : {}) as T;
+    let code: number | undefined;
+    try {
+      code = (JSON.parse(text) as { error?: { code?: number } }).error?.code;
+    } catch {
+      code = undefined;
+    }
+    lastError = new Error(`WhatsApp API failed [${res.status}]: ${text.slice(0, 400)}`);
+    const delay = delays[attempt];
+    if (delay === undefined || !isTransientMetaFailure(res.status, code)) break;
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+  throw lastError ?? new Error("تعذّر إتمام الطلب مع واتساب.");
 }
 
 /** يرسل رسالة نصية عبر واتساب (داخل نافذة ٢٤ ساعة من رسالة العميل). */

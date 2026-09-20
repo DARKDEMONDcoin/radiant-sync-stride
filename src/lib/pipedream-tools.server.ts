@@ -69,14 +69,21 @@ async function accountFor(
   workspaceId: string,
   provider: string,
 ): Promise<string | null> {
-  const { data } = await admin
+  // limit(1) لا maybeSingle: مساحة العمل قد تربط أكثر من حساب لنفس المنصة،
+  // وكان ذلك يُرجع خطأ «صفوف متعددة» يُبتلع فيظهر الموظف كأن المنصة غير مربوطة.
+  const { data, error } = await admin
     .from("pipedream_accounts")
     .select("account_id")
     .eq("workspace_id", workspaceId)
     .eq("provider", provider)
     .eq("status", "connected")
-    .maybeSingle();
-  return data?.account_id ?? null;
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    console.warn(`[live-context] ${provider} account lookup failed:`, error.message);
+    return null;
+  }
+  return data?.[0]?.account_id ?? null;
 }
 
 /** يجمع سياقاً حيّاً موجزاً لكل منصات الموظف المربوطة (يتحمّل الفشل بصمت). */
