@@ -3,6 +3,7 @@
  * الحماية: مفتاح سري في مسار الاستدعاء (?token=) يُطابق PIPEDREAM_WEBHOOK_SECRET في app_secrets.
  */
 import { createFileRoute } from "@tanstack/react-router";
+import { secretsMatch } from "@/lib/timing-safe";
 
 import { pipedreamApps } from "@/data/pipedream-apps";
 
@@ -34,12 +35,8 @@ export const Route = createFileRoute("/api/public/pipedream-webhook")({
           .eq("name", "PIPEDREAM_WEBHOOK_SECRET")
           .maybeSingle();
         const expected = secret?.value ?? process.env["PIPEDREAM_WEBHOOK_SECRET"] ?? "";
-        // مقارنة ثابتة الزمن: المقارنة النصية المباشرة تتسرّب منها أطوال التطابق
-        // فتسمح نظرياً باستنتاج السر حرفاً حرفاً (نفس أسلوب ويبهوك واتساب).
-        const sameSecret =
-          expected.length > 0 &&
-          token.length === expected.length &&
-          token.split("").every((ch, i) => ch === expected[i]);
+        // مقارنة ثابتة الزمن من مصدر واحد يشترك فيه الويبهوك والكرون.
+        const sameSecret = secretsMatch(token, expected);
         if (!sameSecret) return new Response("Unauthorized", { status: 401 });
 
         const payload = (await request.json()) as Event;

@@ -709,8 +709,10 @@ export async function runEmployeeTurn(
       intent !== "smalltalk" && craft[data.employeeId]
         ? `## معايير حِرفتك\n${craft[data.employeeId]}`
         : "",
-      intent !== "smalltalk" ? frontierEdgeBlock(data.employeeId as EmployeeId) : "",
-      intent !== "smalltalk" ? playbookFor(data.employeeId, data.message) : "",
+      // معايير الصناعة ودليل التشغيل مكتوبان لمخرجات العمل (خطة نشر، هيكل مقال).
+      // حقنهما في سؤال معرفي يناقض أمر «أجب في ثلاثة أسطر بلا مخرج عمل».
+      intent === "work" ? frontierEdgeBlock(data.employeeId as EmployeeId) : "",
+      intent === "work" ? playbookFor(data.employeeId, data.message) : "",
       scopeBoundaryBlock(data.employeeId, data.message),
       sirajMemory,
       nourMemory,
@@ -740,8 +742,10 @@ export async function runEmployeeTurn(
         ? `${liveBlock}\n\nهذه الكتلة المرتبة ٢ في سلّم السلطة (يعلوها الالتزام القانوني وحده): أي رقم أو تاريخ فيها مؤكد ورسمي، اذكره كما هو بالحرف، وهي تتقدّم على أي قاعدة أسلوب أو حِرفة أو ذاكرة. ممنوع قول «لا يوجد رقم مؤكد» عن رقم مذكور هنا.`
         : "",
       actionTruthRules,
-      askedBlock,
-      toolsBlock,
+      // تعليمات المنصة المطلوبة وأدوات المنصة تخص التسليم: في السؤال والدردشة
+      // تناقض أمر «لا تذكر الربط ولا النشر ولا تسلّم مخرجاً».
+      intent === "work" ? askedBlock : "",
+      intent === "work" ? toolsBlock : "",
       intent === "work" ? actionsBlock : "",
       "## أسلوب المحادثة",
       "فكّر داخلياً بالترتيب: افهم الهدف، تحقق من الأدلة، اختر الإجراء، ثم سلّم النتيجة. لا تعرض خطوات تفكيرك.",

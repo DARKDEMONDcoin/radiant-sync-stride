@@ -2,6 +2,7 @@
  * تكييف نص المنشور لكل منصة + اقتراح أفضل وقت للنشر.
  * ملف محايد (يعمل على المتصفح والخادم) حتى تستعمله لوحة النشر والطيار الآلي بنفس المنطق.
  */
+import { platformHardLimit } from "./post-quality";
 
 /**
  * أسطر «كلام الموظف» التي لا يجوز أن تُنشر أبداً على المنصة:
@@ -223,14 +224,17 @@ export function shortForX(caption: string): string {
   return [(stop > 80 ? cut.slice(0, stop + 1) : cut).trim(), tags].filter(Boolean).join("\n");
 }
 
-/** حدود النص المعروفة لكل منصة. */
+/**
+ * حدود النص المعروفة لكل منصة — مشتقة من نفس جدول الجودة (post-quality) حتى لا
+ * يمرّ منشور من بوابة الجودة ثم يُقصّ هنا في منتصف الجملة بحدّ أقل.
+ */
 const LIMIT: Record<string, number> = {
-  x: 280,
-  instagram: 2200,
-  facebook: 5000,
-  linkedin: 3000,
-  pinterest: 480,
-  youtube: 5000,
+  x: platformHardLimit("x"),
+  instagram: platformHardLimit("instagram"),
+  facebook: platformHardLimit("facebook"),
+  linkedin: platformHardLimit("linkedin"),
+  pinterest: platformHardLimit("pinterest"),
+  youtube: platformHardLimit("youtube"),
 };
 
 /** يعيد نص المنشور مكيّفاً لحدود المنصة المطلوبة. */

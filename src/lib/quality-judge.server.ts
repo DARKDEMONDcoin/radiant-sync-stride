@@ -151,7 +151,7 @@ export async function judgeAndImprove(input: JudgeInput): Promise<JudgeVerdict> 
         "أعد كتابة المخرج بجودة أعلى: وضوح الخلاصة، اكتمال كل قسم، أرقام بمصادرها، وخطوة تالية واحدة محددة.",
       ],
     };
-  } else if (!issues.length || (score >= threshold && !mustFix.length)) {
+  } else if (score >= threshold && !mustFix.length) {
     return { score, issues: verdict.issues, output: original, revised: false };
   } else {
     verdict = { score, issues };
@@ -206,10 +206,11 @@ export async function judgeAndImprove(input: JudgeInput): Promise<JudgeVerdict> 
       return { score: verdict.score, issues: verdict.issues, output: original, revised: false };
     }
 
-    // النسخة المُصلَحة عالجت ملاحظات محددة بلا حذف — نعتمدها بدرجة عتبة التسليم
-    // بدل استهلاك نداء ثالث في إعادة الحكم (كان يضيف نصف دقيقة لكل رد).
+    // النسخة المُصلَحة عالجت ملاحظات محددة بلا حذف — نعتمدها بدل استهلاك نداء
+    // ثالث في إعادة الحكم. الدرجة مقيّدة بسقف العتبة: لم يقسها النموذج مجدداً،
+    // ورفعها فوق العتبة كان يضخّم متوسط الجودة وقياس التعلّم بأرقام غير مقيسة.
     return {
-      score: Math.max(verdict.score, threshold - after.penalty),
+      score: Math.min(threshold, Math.max(verdict.score, threshold - after.penalty)),
       issues: after.issues.map((i) => i.hint),
       output: fixed,
       revised: true,

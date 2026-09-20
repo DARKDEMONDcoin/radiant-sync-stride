@@ -40,7 +40,7 @@ const STRUCTURES: Record<string, string> = {
   ].join("\n"),
 };
 
-/** كتلة بنية الرد لموظف (لسِراج ونور بنيتهما معرّفة في مسار الدردشة). */
+/** كتلة بنية الرد لموظف — هذا الملف مصدرها الوحيد للفريق كله. */
 export function replyStructureBlock(employeeId: string): string {
   return STRUCTURES[employeeId] ?? "";
 }

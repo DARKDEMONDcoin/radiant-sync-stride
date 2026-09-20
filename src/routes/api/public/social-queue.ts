@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { secretsMatch } from "@/lib/timing-safe";
 
 /**
  * مشغّل طابور النشر الاجتماعي: ينشر المنشورات التي حان موعدها على المنصات المربوطة.
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/api/public/social-queue")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         const envSecret = process.env["LOVABLE_CRON_SECRET"];
-        let authorized = Boolean(envSecret) && provided === envSecret;
+        let authorized = secretsMatch(provided, envSecret);
         if (!authorized) {
           const { data: valid } = await supabaseAdmin.rpc("verify_cron_token", {
             _name: "social-queue",
