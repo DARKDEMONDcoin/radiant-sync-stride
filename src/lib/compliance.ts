@@ -7,6 +7,7 @@
  *  5) إمكانية الوصول في كل مخرج بصري أو نصي.
  * لا تغيّر هذه الكتلة أي منطق تنفيذ — تعليمات كتابة فقط.
  */
+import { PUBLIC_CONTENT_EMPLOYEES } from "./team-knowledge";
 
 const LEGAL = [
   "## الالتزام القانوني والإعلاني (المرتبة ١ في سلّم السلطة — إلزامي في كل مخرج يُنشر أو يُرسل)",
@@ -47,7 +48,7 @@ const ACCESSIBILITY = [
 export function complianceBlock(employeeId: string): string {
   // قواعد النص البديل والتباين تخصّ من يُنتج محتوى بصرياً منشوراً فقط.
   // أمَل تكتب بريداً ومحاضر، وسالم يكتب رسائل بيع وعروضاً نصية — لا تخصّهما.
-  const producesPublic = ["sonny", "nour", "dana"].includes(employeeId);
+  const producesPublic = PUBLIC_CONTENT_EMPLOYEES.has(employeeId);
   const parts = [LEGAL];
   // دانة تُنتج كرييتف عام قد يُطلب منها وقت أزمة، فتحتاج نفس قواعد الأزمات.
   if (["sonny", "sam", "eva", "nour", "dana"].includes(employeeId)) parts.push(CRISIS);
