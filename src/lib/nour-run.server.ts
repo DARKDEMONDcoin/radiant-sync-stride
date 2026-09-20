@@ -1051,6 +1051,7 @@ export async function executeSkill(
   let qualityScore: number | null = null;
   let qualityRevised = false;
   let qualityIssues: string[] = [];
+  let qualityChecked = false;
   try {
     const { judgeAndImprove } = await import("./quality-judge.server");
     const verdict = await judgeAndImprove({
@@ -1064,7 +1065,10 @@ export async function executeSkill(
     qualityRevised = verdict.revised;
     qualityIssues = verdict.issues;
     output = verdict.output;
+    qualityChecked = true;
   } catch (error) {
+    // فشل الحَكَم ليس نجاحاً: يبقى المخرج كما هو لكن الخطوة تقول ذلك صراحةً
+    // بدل أن تظهر للمالك مطابقةً لمراجعة اجتازت المعيار فعلاً.
     console.warn("[judge] skill skipped:", error instanceof Error ? error.message : error);
   }
 
@@ -1155,7 +1159,9 @@ export async function executeSkill(
         {
           label: qualityScore
             ? `مراجعة الجودة — ${qualityScore}/100${qualityRevised ? " (أُعيدت الكتابة)" : ""}`
-            : "مراجعة الجودة",
+            : qualityChecked
+              ? "مراجعة الجودة"
+              : "لم تُراجَع الجودة — تعذّر تشغيل الحَكَم",
           state: "done",
         },
         { label: "مراجعتك", state: "active" },

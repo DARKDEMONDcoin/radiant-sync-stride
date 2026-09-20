@@ -15,7 +15,11 @@ type Post = { title?: string; kind?: string; channel?: string; body?: string } &
   unknown
 >;
 
-/** مطابقة لحدّ «جيد» في post-quality.grade: ما دون ٧٥ مصنَّف «يحتاج تحسين» فيُصلَح. */
+/**
+ * مطابقة لحدّ «جيد» في post-quality.grade: ما دون ٧٥ مصنَّف «يحتاج تحسين» فيُصلَح.
+ * تختلف عمداً عن عتبة quality-judge (٨٢): تلك درجة نموذج على مخرج نصي طويل،
+ * وهذه درجة مقياس حتمي للمنشور القصير — سلّمان مختلفان لا رقم واحد.
+ */
 const THRESHOLD = 75;
 
 function providerOf(post: Post): string | null {
