@@ -15,6 +15,8 @@ export type JudgeVerdict = {
   /** المخرج النهائي — الأصلي أو المُحسَّن. */
   output: string;
   revised: boolean;
+  /** هل جرى تقييم فعلي؟ false يعني تخطّياً لا رسوباً بدرجة صفر. */
+  checked: boolean;
 };
 
 export type JudgeInput = {
@@ -79,7 +81,13 @@ const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0
  */
 export async function judgeAndImprove(input: JudgeInput): Promise<JudgeVerdict> {
   const original = input.output ?? "";
-  const fallback: JudgeVerdict = { score: 0, issues: [], output: original, revised: false };
+  const fallback: JudgeVerdict = {
+    score: 0,
+    issues: [],
+    output: original,
+    revised: false,
+    checked: false,
+  };
   // المخرجات القصيرة (كابشن، تغريدة، رسالة باردة) تُراجَع أيضاً — هي الأكثر استخداماً،
   // وفحص الفراغات والكلمات الممنوعة مصمَّم أصلاً لها. لا يُستثنى إلا ما لا يحتمل مراجعة أصلاً.
   if (original.trim().length < 12) return fallback;

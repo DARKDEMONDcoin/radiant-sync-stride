@@ -450,7 +450,12 @@ export async function runLearningCycle(client: Client, workspaceId: string) {
     const candidateScore = average(candidateRows.slice(0, 30).map((run) => run.quality_score ?? 0));
     const baselineScore = average(baselineRows.slice(0, 30).map((run) => run.quality_score ?? 0));
     if (candidateScore === null || baselineScore === null) continue;
-    const improvement = baselineScore > 0 ? (candidateScore - baselineScore) / baselineScore : 0;
+    // خط أساس صفر: القسمة مستحيلة، لكن تصفير التحسّن كان يحجب درساً نافعاً فعلاً.
+    // نستخدم الفرق المطلق منسوباً إلى سلّم ١٠٠ بدل إعلان «لا تغيير».
+    const improvement =
+      baselineScore > 0
+        ? (candidateScore - baselineScore) / baselineScore
+        : (candidateScore - baselineScore) / 100;
     const rejected = candidateRows.slice(0, 30).some((run) => run.outcome === "rejected");
     const safetyPassed = !rejected && candidateScore >= 82;
 

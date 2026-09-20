@@ -436,7 +436,9 @@ export function scorePost({
 
   // ٩) قابلية القراءة: أسطر قصيرة وفقرات مفصولة.
   const longLine = lines.find((l) => l.length > spec.maxLineLen);
-  const readable = !longLine && (chars < 220 || clean.includes("\n"));
+  // الحد الأدنى ٢٠ حرفاً: نص شديد القصر ليس «سهل القراءة» بل ناقص،
+  // وكان يحصد نقاط القراءة والمسح مجاناً لمجرد قِصَره.
+  const readable = !longLine && chars >= 20 && (chars < 220 || clean.includes("\n"));
   add(
     "readable",
     "سهولة القراءة على الجوال",
@@ -448,7 +450,8 @@ export function scorePost({
   );
 
   const paragraphCount = lines.length;
-  const scannable = chars < 180 || (paragraphCount >= 2 && paragraphCount <= 8);
+  const scannable =
+    (chars >= 20 && chars < 180) || (paragraphCount >= 2 && paragraphCount <= 8);
   add(
     "scan",
     "بنية سريعة المسح",
