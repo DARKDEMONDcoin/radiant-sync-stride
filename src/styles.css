@@ -348,8 +348,8 @@
 
 /* شاشة ترقية الأسعار على الهاتف */
 @keyframes sahl-pricing-wave-run {
-  from { transform: translate3d(22%, 0, 0); }
-  to { transform: translate3d(-22%, 0, 0); }
+  from { transform: translate3d(30%, 0, 0); }
+  to { transform: translate3d(-30%, 0, 0); }
 }
 
 @media (max-width: 767px) {
