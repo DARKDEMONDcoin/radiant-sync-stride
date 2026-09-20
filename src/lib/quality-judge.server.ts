@@ -155,7 +155,6 @@ export async function judgeAndImprove(input: JudgeInput): Promise<JudgeVerdict> 
   } else {
     verdict = { score, issues };
   }
-  verdict = { score, issues };
 
 
   // الإصلاح الموجّه يشمل الآن المخرجات الطويلة أيضاً (مقال ركيزة، خطة، تقرير) لأنها
