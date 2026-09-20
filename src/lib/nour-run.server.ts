@@ -891,11 +891,20 @@ export async function executeSkill(
     // سلّم السلطة والالتزام أولاً — كما في مسار المحادثة — كي يحكما معايير
     // الحِرفة والدليل لا أن يأتيا بعدهما فيصيرا استثناءً.
     ...governanceBlocks(params.employeeId),
+    // نفس طبقات الحوكمة المستخدمة في المحادثة، بنية «عمل» ثابتة — حتى يكون مخرج
+    // القدرات والجدولة التلقائية مطابقاً لمخرج المحادثة بلا نصف تعليمات.
+    answerPolicyBlock(params.employeeId, "work"),
+    reasoningDepthBlock(params.employeeId as EmployeeId, "work"),
+    expertMindBlock(params.employeeId, "work"),
+    employeeEdgeBlock(params.employeeId),
+    frontierEdgeBlock(params.employeeId as EmployeeId),
+    scopeBoundaryBlock(params.employeeId, `${skill.title} ${requestSummary}`),
     craft[params.employeeId] ? `## معايير حِرفتك\n${craft[params.employeeId]}` : "",
     playbookFor(
       params.employeeId,
       `${params.skillId} ${Object.values(params.values ?? {}).join(" ")}`,
     ),
+    replyStructureBlock(params.employeeId),
     qualityCriteria[params.employeeId]?.length
       ? `## معايير قبول المخرج (راجعها بنداً بنداً قبل الكتابة ثم قبل التسليم)\n${(qualityCriteria[params.employeeId] ?? []).map((criterion, index) => `${index + 1}) ${criterion}`).join("\n")}`
       : "",
