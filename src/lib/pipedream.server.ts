@@ -115,7 +115,14 @@ async function call<T>(config: PipedreamConfig, path: string, init: RequestInit 
     // طلبات الوكيل تنقل خطأ المنصة نفسها، لا خطأ الوسيط — نترجمه لسبب وحل مفهومين.
     const friendly = explainPlatformError(text);
     if (friendly) throw new Error(friendly);
-    const source = path.startsWith("/proxy/") ? "المنصة رفضت الطلب" : "الوسيط رفض الطلب";
+    // نسبة الخطأ لصاحبه: تنفيذ إجراء جاهز يُرجِع غالباً خطأ المنصة نفسها داخل جسم
+    // الرد، فنسبته للوسيط كانت تضلّل المالك ويذهب يفحص الوسيط بدل حسابه.
+    const platformFault =
+      path.startsWith("/proxy/") ||
+      /oauth|token|permission|scope|unauthorized|forbidden|invalid_grant|rate.?limit|duplicate|invalid[_\s-]?(param|request|media)/i.test(
+        text,
+      );
+    const source = platformFault ? "المنصة رفضت الطلب" : "الوسيط رفض الطلب";
     throw new Error(`${source} [${res.status}]: ${text.slice(0, 200)}`);
   }
   return (text ? JSON.parse(text) : {}) as T;
