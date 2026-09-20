@@ -104,6 +104,7 @@ function shopDomain(input: string): string {
 
 async function shopifyFetch(config: ShopifyConfig, path: string, init?: RequestInit) {
   const res = await fetch(`https://${config.shop}/admin/api/2024-10${path}`, {
+    signal: AbortSignal.timeout(30_000),
     ...init,
     headers: {
       "X-Shopify-Access-Token": config.accessToken,
@@ -215,6 +216,7 @@ export const publishToShopify = createServerFn({ method: "POST" })
 
 async function webflowFetch(token: string, path: string, init?: RequestInit) {
   const res = await fetch(`https://api.webflow.com/v2${path}`, {
+    signal: AbortSignal.timeout(30_000),
     ...init,
     headers: {
       Authorization: `Bearer ${token}`,

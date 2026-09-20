@@ -57,6 +57,7 @@ export async function autoPublish(
     );
     if (wp?.siteUrl) {
       const res = await fetch(`${wp.siteUrl}/wp-json/wp/v2/posts`, {
+        signal: AbortSignal.timeout(30_000),
         method: "POST",
         headers: {
           Authorization: `Basic ${btoa(`${wp.username}:${wp.appPassword}`)}`,
@@ -95,6 +96,7 @@ export async function autoPublish(
       const res = await fetch(
         `https://${sh.shop}/admin/api/2024-10/blogs/${sh.blogId}/articles.json`,
         {
+          signal: AbortSignal.timeout(30_000),
           method: "POST",
           headers: {
             "X-Shopify-Access-Token": sh.accessToken,

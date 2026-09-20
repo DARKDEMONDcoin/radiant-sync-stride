@@ -56,7 +56,8 @@ const SPEC: Record<string, Spec> = {
     maxLineLen: 160,
   },
   facebook: {
-    hardLimit: 5000,
+    // الحد الرسمي للمنشور، مطابق لـplatform-limits.ts — الجودة تُقاس بالمدى المثالي لا بحدّ مخترع.
+    hardLimit: 63206,
     sweet: [80, 600],
     hashtags: [0, 4],
     maxEmojis: 6,
@@ -81,7 +82,8 @@ const SPEC: Record<string, Spec> = {
     maxLineLen: 280,
   },
   pinterest: {
-    hardLimit: 480,
+    // وصف البِن الرسمي 500 حرف، مطابق لـplatform-limits.ts.
+    hardLimit: 500,
     sweet: [80, 400],
     hashtags: [0, 5],
     maxEmojis: 3,

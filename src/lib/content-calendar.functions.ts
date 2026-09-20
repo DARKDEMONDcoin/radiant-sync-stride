@@ -158,7 +158,10 @@ export const publishCalendarPost = createServerFn({ method: "POST" })
     if (!own) throw new Error("غير مصرّح.");
     if (own.provider === "instagram" && !own.image_url) throw new Error("إنستجرام يتطلب صورة.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin
+    // حجز ذرّي: ضغطتان متزامنتان على «انشر الآن» كانتا تنشران المنشور مرتين.
+    // نشترط أن يكون غير منشور وغير محجوز حديثاً، والصف الراجع هو دليل الحجز.
+    const staleLock = new Date(Date.now() - 2 * 60_000).toISOString();
+    const { data: claimed } = await supabaseAdmin
       .from("social_posts")
       .update({
         status: "scheduled",
@@ -166,11 +169,21 @@ export const publishCalendarPost = createServerFn({ method: "POST" })
         locked_at: new Date().toISOString(),
         last_error: null,
       })
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .neq("status", "published")
+      .or(`locked_at.is.null,locked_at.lt.${staleLock}`)
+      .select("id")
+      .maybeSingle();
+    if (!claimed) throw new Error("المنشور منشور بالفعل أو جارٍ نشره الآن — انتظر لحظة قبل إعادة المحاولة.");
     const { publishQueuedPost } = await import("./social-queue.server");
     const result = await publishQueuedPost(supabaseAdmin, data.id);
-    if (result.status !== "published") throw new Error(result.error ?? "تعذّر النشر.");
+    if (result.status !== "published") {
+      // نحرّر الحجز فوراً كي يستطيع المالك إعادة المحاولة بعد إصلاح السبب.
+      await supabaseAdmin.from("social_posts").update({ locked_at: null }).eq("id", data.id);
+      throw new Error(result.error ?? "تعذّر النشر.");
+    }
     return { ok: true as const };
+
   });
 
 /** يقرأ أداء المنشورات الحقيقي ويستخلص «ما ينجح» ويحفظه في عقل العلامة. */

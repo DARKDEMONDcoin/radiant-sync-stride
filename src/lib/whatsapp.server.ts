@@ -211,11 +211,25 @@ export async function listPipedreamPhones(
     data?: { id: string; display_phone_number?: string; verified_name?: string }[];
   };
   // معرّف حساب الأعمال محفوظ لدى الوسيط نفسه — نستدعيه بماكرو بدل تخزينه عندنا.
-  const res = await proxyRequest<Phones>(config, {
-    workspaceId,
-    accountId,
-    url: `${GRAPH}/{{custom_fields.business_account_id}}/phone_numbers?limit=25`,
-  });
+  let res: Phones;
+  try {
+    res = await proxyRequest<Phones>(config, {
+      workspaceId,
+      accountId,
+      url: `${GRAPH}/{{custom_fields.business_account_id}}/phone_numbers?limit=25`,
+    });
+  } catch (error) {
+    // إن لم يُستبدل الماكرو (ربط قديم بلا معرّف حساب أعمال) يرجع خطأ غامض عن مسار
+    // فيه أقواس — نحوّله لرسالة تقول للمالك ماذا يفعل بالضبط.
+    const message = error instanceof Error ? error.message : String(error);
+    if (/custom_fields|business_account_id|\{\{/.test(message)) {
+      throw new Error(
+        "ربط واتساب لا يحمل معرّف حساب الأعمال (Business Account ID). أعد ربط واتساب من صفحة التكاملات واختر حساب الأعمال أثناء الربط.",
+      );
+    }
+    throw error;
+  }
+
   return (res.data ?? []).map((p) => ({
     id: p.id,
     displayNumber: p.display_phone_number ?? "",

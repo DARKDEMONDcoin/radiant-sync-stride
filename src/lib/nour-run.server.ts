@@ -831,6 +831,19 @@ export async function executeSkill(
     }
   }
 
+  // الذاكرة التشغيلية لبقية الفريق (أمَل، سالم، دانة، آدم): أرقام أدائهم الحقيقية
+  // وأمثلتهم المعتمدة — كانت في المحادثة فقط، فكان المخرج المجدول بلا أرقام الحساب.
+  let genericMemory = "";
+  if (!["sonny", "nour"].includes(params.employeeId)) {
+    try {
+      const { opsMemory } = await import("./ops-memory.server");
+      genericMemory = await opsMemory(client as never, params.workspaceId, params.employeeId);
+    } catch (error) {
+      console.error("[ops-memory] skill context failed:", error);
+    }
+  }
+
+
   // ذاكرة القرارات: القرارات المعتمدة سابقاً تبقى ملزمة في كل تنفيذ.
   let decisionsMemory = "";
   try {
@@ -862,8 +875,27 @@ export async function executeSkill(
     profile?: unknown;
     website?: string | null;
     country?: string | null;
+    owner_id?: string | null;
   };
+  // لهجة المالك المختارة في إعداداته تتقدّم على اللهجة المستنتجة من الدولة —
+  // كانت تُفقد في المهام التلقائية فيرجع الموظف للتخمين.
+  let ownerDialect: string | null = null;
+  try {
+    const { data: ownerProfile } = ws.owner_id
+      ? await client.from("profiles").select("dialect").eq("id", ws.owner_id).maybeSingle()
+      : { data: null as { dialect?: string | null } | null };
+    const wsProfileDialect =
+      ws.profile &&
+      typeof ws.profile === "object" &&
+      typeof (ws.profile as { dialect?: unknown }).dialect === "string"
+        ? ((ws.profile as { dialect?: string }).dialect ?? "").trim()
+        : "";
+    ownerDialect = (ownerProfile?.dialect ?? "").trim() || wsProfileDialect || null;
+  } catch (error) {
+    console.warn("[dialect] skill context skipped:", error instanceof Error ? error.message : error);
+  }
   const timeZone = timezoneForCountry(ws.country);
+
   let worldPulse = "";
   try {
     worldPulse = await ambientPulse(
@@ -927,6 +959,7 @@ export async function executeSkill(
       : "",
     sirajMemory,
     nourMemory,
+    genericMemory,
     decisionsMemory,
     learning.block,
     ...sharedSystemBlocks({
@@ -935,7 +968,9 @@ export async function executeSkill(
       profile: ws.profile,
       website: ws.website,
       country: ws.country,
+      dialect: ownerDialect,
     }),
+
     brainText ? `## عقل العلامة (ذاكرة مشتركة بين الفريق)\n${brainText}` : "",
     research.block ? `${evidenceRules}\n\n## أدلة ميدانية (لحظية)\n${research.block}` : "",
     live.block

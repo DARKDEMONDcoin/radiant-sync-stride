@@ -58,6 +58,7 @@ function wpHeaders(config: WordPressConfig): HeadersInit {
 
 async function wpFetch(config: WordPressConfig, path: string, init?: RequestInit) {
   const response = await fetch(`${config.siteUrl}/wp-json/wp/v2${path}`, {
+    signal: AbortSignal.timeout(30_000),
     ...init,
     headers: { ...wpHeaders(config), ...(init?.headers ?? {}) },
   });

@@ -142,17 +142,48 @@ async function assertNotDuplicate(
   }
 }
 
+/**
+ * قفل قصير داخل العملية: فحص قاعدة البيانات وحده لا يمنع طلبين متزامنين
+ * (كلاهما يقرأ «لا يوجد» قبل أن يكتب الآخر). المفتاح = مساحة العمل + المنصة + النص.
+ */
+const inFlight = new Map<string, number>();
+
+function claimInFlight(workspaceId: string, provider: string, text: string): () => void {
+  const key = `${workspaceId}|${provider}|${text.trim()}`;
+  const now = Date.now();
+  for (const [k, at] of inFlight) if (now - at > 5 * 60_000) inFlight.delete(k);
+  if (inFlight.has(key)) {
+    throw new Error(`نفس النص قيد النشر الآن على ${provider} — منعنا نشره مرتين.`);
+  }
+  inFlight.set(key, now);
+  return () => inFlight.delete(key);
+}
+
+type PublishParams = {
+  workspaceId: string;
+  provider: string;
+  text: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  /** وسائط متعددة: ألبوم فيسبوك أو كاروسيل إنستجرام. */
+  media?: { url: string; kind: "image" | "video" }[];
+};
+
 export async function publishToPlatform(
   admin: Admin,
-  params: {
-    workspaceId: string;
-    provider: string;
-    text: string;
-    imageUrl?: string;
-    videoUrl?: string;
-    /** وسائط متعددة: ألبوم فيسبوك أو كاروسيل إنستجرام. */
-    media?: { url: string; kind: "image" | "video" }[];
-  },
+  params: PublishParams,
+): Promise<PublishResult> {
+  const release = claimInFlight(params.workspaceId, params.provider, params.text);
+  try {
+    return await publishToPlatformInner(admin, params);
+  } finally {
+    release();
+  }
+}
+
+async function publishToPlatformInner(
+  admin: Admin,
+  params: PublishParams,
 ): Promise<PublishResult> {
   const app = pipedreamApp(params.provider);
   const metaProxy = params.provider === "instagram" || params.provider === "facebook";

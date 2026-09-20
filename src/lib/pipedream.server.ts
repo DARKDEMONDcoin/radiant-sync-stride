@@ -69,6 +69,8 @@ async function accessToken(config: PipedreamConfig): Promise<string> {
 
   const res = await fetch(`${API}/oauth/token`, {
     method: "POST",
+    // بلا مهلة كان نداء واحد متعثّر يعلّق تنفيذ المهمة كلها.
+    signal: AbortSignal.timeout(15_000),
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       grant_type: "client_credentials",
@@ -87,6 +89,7 @@ async function accessToken(config: PipedreamConfig): Promise<string> {
 async function call<T>(config: PipedreamConfig, path: string, init: RequestInit = {}): Promise<T> {
   const token = await accessToken(config);
   const res = await fetch(`${API}/connect/${config.projectId}${path}`, {
+    signal: AbortSignal.timeout(30_000),
     ...init,
     headers: {
       Authorization: `Bearer ${token}`,
@@ -112,7 +115,14 @@ async function call<T>(config: PipedreamConfig, path: string, init: RequestInit 
     // طلبات الوكيل تنقل خطأ المنصة نفسها، لا خطأ الوسيط — نترجمه لسبب وحل مفهومين.
     const friendly = explainPlatformError(text);
     if (friendly) throw new Error(friendly);
-    const source = path.startsWith("/proxy/") ? "المنصة رفضت الطلب" : "الوسيط رفض الطلب";
+    // نسبة الخطأ لصاحبه: تنفيذ إجراء جاهز يُرجِع غالباً خطأ المنصة نفسها داخل جسم
+    // الرد، فنسبته للوسيط كانت تضلّل المالك ويذهب يفحص الوسيط بدل حسابه.
+    const platformFault =
+      path.startsWith("/proxy/") ||
+      /oauth|token|permission|scope|unauthorized|forbidden|invalid_grant|rate.?limit|duplicate|invalid[_\s-]?(param|request|media)/i.test(
+        text,
+      );
+    const source = platformFault ? "المنصة رفضت الطلب" : "الوسيط رفض الطلب";
     throw new Error(`${source} [${res.status}]: ${text.slice(0, 200)}`);
   }
   return (text ? JSON.parse(text) : {}) as T;
@@ -200,6 +210,7 @@ export async function pickScopeProfile(
   try {
     const token = await accessToken(config);
     const res = await fetch(`${API}/apps/${encodeURIComponent(appSlug)}`, {
+      signal: AbortSignal.timeout(15_000),
       headers: { Authorization: `Bearer ${token}`, "x-pd-environment": config.environment },
     });
     if (!res.ok) return null;
