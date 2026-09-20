@@ -58,6 +58,7 @@ export function ghostBase(apiUrl: string): string {
 async function ghostFetch(config: GhostConfig, path: string, init?: RequestInit) {
   const token = await ghostToken(config.adminKey);
   const res = await fetch(`${ghostBase(config.apiUrl)}/ghost/api/admin${path}`, {
+    signal: AbortSignal.timeout(30_000),
     ...init,
     headers: {
       Authorization: `Ghost ${token}`,

@@ -69,6 +69,8 @@ async function accessToken(config: PipedreamConfig): Promise<string> {
 
   const res = await fetch(`${API}/oauth/token`, {
     method: "POST",
+    // بلا مهلة كان نداء واحد متعثّر يعلّق تنفيذ المهمة كلها.
+    signal: AbortSignal.timeout(15_000),
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       grant_type: "client_credentials",
@@ -87,6 +89,7 @@ async function accessToken(config: PipedreamConfig): Promise<string> {
 async function call<T>(config: PipedreamConfig, path: string, init: RequestInit = {}): Promise<T> {
   const token = await accessToken(config);
   const res = await fetch(`${API}/connect/${config.projectId}${path}`, {
+    signal: AbortSignal.timeout(30_000),
     ...init,
     headers: {
       Authorization: `Bearer ${token}`,
@@ -200,6 +203,7 @@ export async function pickScopeProfile(
   try {
     const token = await accessToken(config);
     const res = await fetch(`${API}/apps/${encodeURIComponent(appSlug)}`, {
+      signal: AbortSignal.timeout(15_000),
       headers: { Authorization: `Bearer ${token}`, "x-pd-environment": config.environment },
     });
     if (!res.ok) return null;

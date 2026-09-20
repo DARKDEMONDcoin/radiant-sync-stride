@@ -272,7 +272,8 @@ async function graph<T>(url: string, init?: RequestInit): Promise<T> {
   for (let attempt = 0; attempt <= GRAPH_RETRY_DELAYS_MS.length; attempt += 1) {
     let res: Response;
     try {
-      res = await fetch(url, init);
+      // مهلة لكل محاولة: تعليق نداء ميتا كان يجمّد النشر بلا رسالة.
+      res = await fetch(url, { signal: AbortSignal.timeout(30_000), ...init });
     } catch (networkError) {
       lastError =
         networkError instanceof Error ? networkError : new Error("تعذّر الاتصال بخوادم ميتا.");
