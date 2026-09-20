@@ -144,7 +144,7 @@ export async function judgeAndImprove(input: JudgeInput): Promise<JudgeVerdict> 
   // الإصلاح الموجّه يشمل الآن المخرجات الطويلة أيضاً (مقال ركيزة، خطة، تقرير) لأنها
   // أكبر أثراً عند الرسوب. حاجز الطول أدناه (٧٠٪ من الأصل) يمنع فقدان المحتوى،
   // وما يتجاوز هذا الحجم فعلاً تصعب إعادة كتابته في نداء واحد بلا بتر.
-  if (original.length > 14_000) {
+  if (original.length > 22_000) {
     return { score: verdict.score, issues: verdict.issues, output: original, revised: false };
   }
 
