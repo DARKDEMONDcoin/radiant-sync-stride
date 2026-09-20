@@ -440,10 +440,13 @@ export async function runLearningCycle(client: Client, workspaceId: string) {
   for (const lesson of lessons ?? []) {
     const { data: runs } = await client
       .from("employee_runs")
-      .select("quality_score, outcome, applied_lesson_ids, created_at")
+      .select("quality_score, outcome, applied_lesson_ids, created_at, was_revised")
       .eq("workspace_id", workspaceId)
       .eq("employee_id", lesson.employee_id)
       .not("quality_score", "is", null)
+      // درجة المخرج المُصلَح تقديرية مقيّدة بالعتبة ولم يقسها الحَكَم مجدداً، فإدخالها في
+      // المتوسط يشوّه قياس التحسّن. نقيس على التشغيلات المقيسة فعلاً فقط.
+      .eq("was_revised", false)
       .order("created_at", { ascending: false })
       .limit(120);
     const candidateRows = (runs ?? []).filter((run) => run.applied_lesson_ids.includes(lesson.id));
