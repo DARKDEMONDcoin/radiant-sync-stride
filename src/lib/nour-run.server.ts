@@ -11,8 +11,15 @@ import { freeChat, gatherEvidence, planResearch } from "./nour-research.server";
 import { withBudget } from "./seo-research.server";
 import { memoryBlock } from "./memory.server";
 import { actionTruthRules, sanitizeActionClaims } from "./action-claims";
-import { sharedSystemBlocks, governanceBlocks } from "./team-knowledge";
+import { sharedSystemBlocks, governanceBlocks, type EmployeeId } from "./team-knowledge";
 import { playbookFor } from "./playbooks";
+import { answerPolicyBlock } from "./answer-policy";
+import { reasoningDepthBlock } from "./reasoning-depth";
+import { expertMindBlock } from "./expert-mind";
+import { employeeEdgeBlock } from "./employee-edge";
+import { frontierEdgeBlock } from "./frontier-edge";
+import { scopeBoundaryBlock } from "./scope-boundaries";
+import { replyStructureBlock } from "./reply-structure";
 import { ambientPulse, nowBlock, timezoneForCountry } from "./live-context.server";
 
 export type Client = SupabaseClient<Database>;
