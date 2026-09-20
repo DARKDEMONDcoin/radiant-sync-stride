@@ -421,7 +421,8 @@ export async function runLearningCycle(client: Client, workspaceId: string) {
     .eq("workspace_id", workspaceId)
     .in("status", ["approved", "active"])
     .limit(200);
-  const minimumEvidence = Math.max(3, settings?.minimum_evidence ?? 3);
+  // ٣ تجارب لا تكفي لتثبيت درس يُحقن في كل رد لاحقاً لكل العملاء؛ الحد الأدنى ٨.
+  const minimumEvidence = Math.max(8, settings?.minimum_evidence ?? 8);
   const configuredImprovement = settings?.minimum_improvement ?? 4;
   const minimumImprovement =
     configuredImprovement > 1 ? configuredImprovement / 100 : configuredImprovement;

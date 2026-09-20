@@ -187,11 +187,17 @@ export const publishToShopify = createServerFn({ method: "POST" })
     const handle = created.article?.handle;
     const link = handle ? `https://${config.shop}/blogs/news/${handle}` : null;
 
-    let indexnow: { submitted: number } | null = null;
+    let indexnow: { submitted: number; accepted: boolean } | null = null;
     if (data.status === "publish" && link) {
       const { submitIndexNowFor } = await import("./indexnow.functions");
       const result = await submitIndexNowFor(admin, data.workspaceId, [link]);
-      indexnow = result ? { submitted: result.submitted } : null;
+      // «تم الإرسال» وحدها كانت تُعرض حتى لو رفض بينج وياندكس الطلب.
+      indexnow = result
+        ? {
+            submitted: result.submitted,
+            accepted: result.endpoints.some((e) => e.status >= 200 && e.status < 300),
+          }
+        : null;
     }
 
     await logPublished(

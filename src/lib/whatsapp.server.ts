@@ -172,6 +172,8 @@ async function graph<T>(
   if (!creds.token) throw new Error("قناة واتساب غير مربوطة.");
   const res = await fetch(`${GRAPH}${path}`, {
     method: init?.method ?? "GET",
+    // بلا مهلة كان الطلب يعلّق حتى تموت الدالة كلها إن تأخّر Graph.
+    signal: AbortSignal.timeout(20_000),
     headers: {
       Authorization: `Bearer ${creds.token}`,
       "Content-Type": "application/json",
