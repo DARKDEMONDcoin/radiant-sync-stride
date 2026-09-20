@@ -1118,7 +1118,8 @@ export async function runEmployeeTurn(
           bannedWords: workspace.banned_words ?? [],
           // اللهجة الحقيقية (اختيار المالك أو المستنتجة) لا نبرة العلامة —
           // تمرير النبرة هنا كان يطلب من المصلّح الكتابة بلهجة اسمها «ودود ومحترف».
-          dialect: ownerDialect ?? undefined,
+          ...(ownerDialect ? { dialect: ownerDialect } : {}),
+
 
           // وسائط حقيقية فقط: مرفقات المستخدم أو صورة ستُولَّد فعلاً.
           hasMedia: Boolean(data.attachments?.length) || (data.imageMode ?? "auto") !== "off",
