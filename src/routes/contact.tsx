@@ -25,7 +25,13 @@ export const Route = createFileRoute("/contact")({
 const channels = [
   { icon: Mail, t: "البريد", d: "hello@sahl.ai", s: "رد خلال يوم عمل واحد" },
   { icon: MessageSquare, t: "الدردشة", d: "من داخل لوحة التحكم", s: "رد خلال ٣ ساعات" },
-  { icon: Phone, t: "المؤسسات", d: "احجز مكالمة ٣٠ دقيقة", s: "لفرق ١٠+ مستخدمين" },
+  {
+    icon: Phone,
+    t: "المؤسسات",
+    d: "راسلنا على hello@sahl.ai لحجز مكالمة ٣٠ دقيقة",
+    s: "لفرق ١٠+ مستخدمين",
+  },
+  { icon: Mail, t: "بلاغات الأمان", d: "security@sahl.ai", s: "للإبلاغ عن الثغرات" },
 ];
 
 const inputCls =
