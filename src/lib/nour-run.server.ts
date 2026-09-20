@@ -25,6 +25,8 @@ import { employeeEdgeBlock } from "./employee-edge";
 import { frontierEdgeBlock } from "./frontier-edge";
 import { scopeBoundaryBlock } from "./scope-boundaries";
 import { replyStructureBlock } from "./reply-structure";
+import { coworkerVoiceBlock } from "./coworker-voice";
+import { effortFor } from "./reasoning-depth";
 import { ambientPulse, nowBlock, timezoneForCountry } from "./live-context.server";
 
 export type Client = SupabaseClient<Database>;
@@ -900,6 +902,16 @@ export async function executeSkill(
     // القدرات والجدولة التلقائية مطابقاً لمخرج المحادثة بلا نصف تعليمات.
     answerPolicyBlock(params.employeeId, "work"),
     reasoningDepthBlock(params.employeeId as EmployeeId, "work"),
+    // بوابات الإذن (مال، التزام قانوني، إجراء لا رجعة فيه، إرسال خارجي) ونبرة
+    // الزميل والإفصاح بأنك ذكاء اصطناعي: كانت في المحادثة فقط، وهي لازمة هنا أيضاً
+    // لأن المهام المجدولة تنتج نفس نوع الالتزامات بلا مراجعة لحظية من المستخدم.
+    coworkerVoiceBlock({
+      employeeId: params.employeeId,
+      employeeName: persona.name,
+      role: persona.role,
+      intent: "work",
+      firstMessage: false,
+    }),
     expertMindBlock(params.employeeId, "work"),
     employeeEdgeBlock(params.employeeId),
     frontierEdgeBlock(params.employeeId as EmployeeId),
