@@ -129,6 +129,7 @@ async function fixBatch(
       posts?: { i?: number; body?: string }[];
     };
     const out = posts.slice();
+    const repaired = new Set<number>();
     for (const fix of parsed.posts ?? []) {
       const row = weak[(Number(fix.i) || 0) - 1];
       const body = typeof fix.body === "string" ? fix.body.trim() : "";
@@ -142,11 +143,21 @@ async function fixBatch(
       // لا نستبدل إلا بتحسّن حقيقي — حتى لا يفسد الإصلاح نصاً كان أفضل.
       if (after.score > row.report.score && after.blockers.length <= row.report.blockers.length) {
         out[row.index] = { ...row.post, body };
+        if (after.blockers.length === 0 && after.score >= THRESHOLD) repaired.add(row.index);
       }
+    }
+    // ما بقي راسباً يُعلَّم صراحةً كي تظهر ملاحظة الجودة للمستخدم بدل تسليم منشور
+    // ضعيف بصمت وكأنه اجتاز الفحص.
+    for (const row of weak) {
+      if (repaired.has(row.index)) continue;
+      out[row.index] = { ...out[row.index], quality_notice: qualityNotice(row) };
     }
     return out;
   } catch (error) {
     console.warn("[autofix] skipped:", error instanceof Error ? error.message : error);
-    return posts;
+    return posts.map((post, index) => {
+      const row = weak.find((w) => w.index === index);
+      return row ? { ...post, quality_notice: qualityNotice(row) } : post;
+    });
   }
 }
