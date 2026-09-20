@@ -18,6 +18,18 @@ export type DirectContext = {
 
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
+/** بصمة ثابتة لمحتوى الطلب — أساس مفتاح منع التكرار. */
+function stableHash(input: string): string {
+  let h1 = 0x811c9dc5;
+  let h2 = 0x01000193;
+  for (let i = 0; i < input.length; i += 1) {
+    const c = input.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;
+    h2 = Math.imul(h2 + c, 0x85ebca6b) >>> 0;
+  }
+  return `${h1.toString(36)}${h2.toString(36)}`;
+}
+
 /** نداء مباشر لواجهة المنصة عبر الوكيل. */
 export async function api<T = unknown>(
   ctx: DirectContext,
@@ -32,6 +44,7 @@ export async function api<T = unknown>(
 ): Promise<T> {
   const headers: Record<string, string> = { ...(init.headers ?? {}) };
   let rawBody: string | undefined;
+  const method0 = init.method ?? (init.json || init.form || init.text !== undefined ? "POST" : "GET");
   if (init.form) {
     rawBody = new URLSearchParams(init.form).toString();
     headers["content-type"] = "application/x-www-form-urlencoded";
@@ -39,11 +52,18 @@ export async function api<T = unknown>(
     rawBody = init.text;
     headers["content-type"] = headers["content-type"] ?? "text/plain";
   }
+  // منع التكرار المالي: إعادة المحاولة على نفس الطلب لا تُنشئ فاتورة/اشتراك/استرجاعاً ثانياً.
+  if (method0 !== "GET" && /(^|\.)stripe\.com$/.test(new URL(url).hostname)) {
+    headers["idempotency-key"] =
+      headers["idempotency-key"] ??
+      `sahl-${ctx.workspaceId}-${stableHash(`${url}|${rawBody ?? ""}|${init.json ? JSON.stringify(init.json) : ""}`)}`;
+  }
+
   return proxyRequest<T>(ctx.config, {
     workspaceId: ctx.workspaceId,
     accountId: ctx.accountId,
     url,
-    method: init.method ?? (init.json || rawBody !== undefined ? "POST" : "GET"),
+    method: method0,
     ...(init.json === undefined ? {} : { body: init.json }),
     ...(rawBody === undefined ? {} : { rawBody }),
     ...(Object.keys(headers).length ? { headers } : {}),
