@@ -831,6 +831,19 @@ export async function executeSkill(
     }
   }
 
+  // الذاكرة التشغيلية لبقية الفريق (أمَل، سالم، دانة، آدم): أرقام أدائهم الحقيقية
+  // وأمثلتهم المعتمدة — كانت في المحادثة فقط، فكان المخرج المجدول بلا أرقام الحساب.
+  let genericMemory = "";
+  if (!["sonny", "nour"].includes(params.employeeId)) {
+    try {
+      const { opsMemory } = await import("./ops-memory.server");
+      genericMemory = await opsMemory(client as never, params.workspaceId, params.employeeId);
+    } catch (error) {
+      console.error("[ops-memory] skill context failed:", error);
+    }
+  }
+
+
   // ذاكرة القرارات: القرارات المعتمدة سابقاً تبقى ملزمة في كل تنفيذ.
   let decisionsMemory = "";
   try {
