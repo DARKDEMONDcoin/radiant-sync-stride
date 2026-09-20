@@ -40,11 +40,18 @@ export async function api<T = unknown>(
     rawBody = init.text;
     headers["content-type"] = headers["content-type"] ?? "text/plain";
   }
+  // منع التكرار المالي: إعادة المحاولة على نفس الطلب لا تُنشئ فاتورة/اشتراك/استرجاعاً ثانياً.
+  if (method0 !== "GET" && /(^|\.)stripe\.com$/.test(new URL(url).hostname)) {
+    headers["idempotency-key"] =
+      headers["idempotency-key"] ??
+      `sahl-${ctx.workspaceId}-${stableHash(`${url}|${rawBody ?? ""}|${init.json ? JSON.stringify(init.json) : ""}`)}`;
+  }
+
   return proxyRequest<T>(ctx.config, {
     workspaceId: ctx.workspaceId,
     accountId: ctx.accountId,
     url,
-    method: init.method ?? (init.json || rawBody !== undefined ? "POST" : "GET"),
+    method: method0,
     ...(init.json === undefined ? {} : { body: init.json }),
     ...(rawBody === undefined ? {} : { rawBody }),
     ...(Object.keys(headers).length ? { headers } : {}),
