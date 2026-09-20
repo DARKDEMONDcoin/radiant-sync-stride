@@ -959,6 +959,7 @@ export async function executeSkill(
       : "",
     sirajMemory,
     nourMemory,
+    genericMemory,
     decisionsMemory,
     learning.block,
     ...sharedSystemBlocks({
@@ -967,7 +968,9 @@ export async function executeSkill(
       profile: ws.profile,
       website: ws.website,
       country: ws.country,
+      dialect: ownerDialect,
     }),
+
     brainText ? `## عقل العلامة (ذاكرة مشتركة بين الفريق)\n${brainText}` : "",
     research.block ? `${evidenceRules}\n\n## أدلة ميدانية (لحظية)\n${research.block}` : "",
     live.block
